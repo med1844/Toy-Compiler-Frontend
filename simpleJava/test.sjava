@@ -1,0 +1,59 @@
+int gcd(int a, int b) {
+    int temp;
+    while (b) {
+        temp = a % b;
+        a = b;
+        b = temp;
+    }
+    return b;
+}
+
+int binarySearch(int# arr, int val) {
+    /**
+     * given the array and the value, returns
+     * the index of the val, or -1 if not found
+     */
+    for (int l = 0, r = len(arr); l < r; ) {
+        int mid = l + (r - l) / 2;
+        if (arr[mid] == val) {
+            l = r = mid;
+        } else if (arr[mid] < val) {
+            mid = l + 1;
+        } else {
+            mid = r;
+        }
+    }
+    // assert l == r;
+    if (arr[l] == val) {
+        return l;
+    } else {
+        return -1;
+    }
+}
+
+int n = parseInt(input());
+int# arr = new int[n];
+for (int i = 0; i < n; ++i) {
+    arr[i] = parseInt(input());
+}
+
+int m = parseInt(input());
+for (int i = 0; i < m; ++i) {
+    int query = parseInt(input());
+    result = binarySearch(arr, query);
+    if (result == -1) {
+        print("Key not found in array.");
+    } else {
+        print("Key found at " + str(query));
+    }
+}
+
+// test UNION & FIND
+int# par = new int[parseInt(input())];
+
+int find(int i) {
+    while (i != par[i]) {
+        i = par[i] = par[par[i]];
+    }
+    return i;
+}

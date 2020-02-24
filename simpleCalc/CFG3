@@ -1,0 +1,4 @@
+START -> E
+E -> E + T | E - T | T
+T -> T * F | F
+F -> ( E ) | int_const

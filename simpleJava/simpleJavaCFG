@@ -1,0 +1,50 @@
+START -> StatementList
+StatementList -> StatementList Statement | Statement
+Statement -> Declaration | Expr | WhileBlock | IfBlock | ForBlock | ReturnStatement | FlowControl
+
+Expr -> f0 ;
+f0 -> f1 | f1 = f0 | f1 = Allocation
+f1 -> f2 | f1 . f2 | f1 [ f2 ]
+f2 -> c0
+c0 -> c1 | c0 and c1
+c1 -> c2 | c1 or c2
+c2 -> c3 | not c3
+c3 -> c4 | c3 == c4 | c3 < c4 | c3 > c4 | c3 <= c4 | c3 >= c4 | c3 != c4
+c4 -> e0
+e0 -> e1 | ++ e1 | -- e1
+e1 -> e2 | e1 + e2 | e1 - e2
+e2 -> e3 | e2 * e3 | e2 / e3 | e2 % e3
+e3 -> e4 | e4 += e3 | e4 -= e3 | e4 *= e3 | e4 /= e3 | e4 %= e3
+e4 -> ( f0 ) | Value
+
+Declaration -> VarDeclaration ; | FunctionDeclaration
+
+VarDeclaration -> Type IdList
+IdList -> IdList , Id | Id
+Id -> id | id = c0 | id = Allocation
+
+FunctionDeclaration -> Type id ( DefParamList ) { StatementList }
+DefParamList -> DefParamList , DefParam | DefParam
+DefParam -> Type id
+
+Allocation -> new FunctionCall | new BasicType AllocArrays
+AllocArrays -> AllocArrays [ c0 ] | [ c0 ]
+
+WhileBlock -> while ( c0 ) { StatementList }
+IfBlock -> if ( c0 ) { StatementList } | if ( c0 ) { StatementList } else { StatementList } | if ( c0 ) { StatementList } else IfBlock
+ForInit -> VarDeclaration | c0 | ''
+ForExpr -> c0 | ''
+ForBlock -> for ( ForInit ; ForExpr ; ForExpr ) { StatementList }
+ReturnStatement -> return c0 ;
+
+Type -> BasicType | BasicType Arrays
+BasicType -> int | float | double | long | char | bool | void | short | id
+Arrays -> Arrays # | #
+
+Value -> FunctionCall | Constant | id
+Constant -> int_const | str_literal | char_literal | true | false | null
+FunctionCall -> id ( ParamList )
+ParamList -> ParamList , Param | Param | ''
+Param -> c0
+
+FlowControl -> break ; | continue ;

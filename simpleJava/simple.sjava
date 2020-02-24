@@ -1,0 +1,26 @@
+int gcd(int a, int b) {
+    int temp;
+    while (b != 0) {
+        temp = a % b;
+        a = b;
+        b = temp;
+    }
+    return a;
+}
+
+int coPrime(int a, int b) {
+    int val = gcd(a, b);
+    if (val != 1) {
+        print("gcd(", a, ", ", b, ") =", val);
+    } else {
+        print(a, "and", b, "are co-prime!");
+    }
+}
+
+int a = 73872, b = 5728;
+print(gcd(a, b));
+for (int i = 5; i < 10; ++i) {
+    for (int j = 5; j < 10; ++j) {
+        coPrime(i, j);
+    }
+}

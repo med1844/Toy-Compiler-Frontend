@@ -1,0 +1,7 @@
+START -> Statement
+Statement -> Assignment | E
+E -> E + T | E - T | T
+T -> T * F | T / F | T % F | F
+F -> F ** G | G
+G -> ( E ) | int_const | id
+Assignment -> id = E

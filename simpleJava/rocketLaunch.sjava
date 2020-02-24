@@ -1,0 +1,16 @@
+int c = 10;
+print("Rocket Launch Countdown...");
+while (c != 0) {
+    --c;
+    if (c == 7) {
+        print("seven");
+        continue;
+    } else if (c == 3) {
+        for (int i = 0; i < 3; ++i) {
+            print("Count Down Interrupted!!");
+        }
+        break;
+    }
+    print(c);
+}
+print("BOOOOM!!!");

@@ -1,0 +1,13 @@
+select \bselect\b select
+from \bfrom\b from
+where \bwhere\b where
+and \band\b and
+comma , ,
+dot \. .
+star \* *
+eq = =
+lt < <
+gt > >
+string_literal \"([^\"\n])*\" str_literal
+int_constant \b(-?)(0|[1-9]\d*)\b int_const
+identifier \b([a-zA-Z]|\_)([a-zA-Z]|[0-9]|\_){0,32}\b id

@@ -1,0 +1,11 @@
+Start -> Query
+Query -> select Columns from Tables | select Columns from Tables where Expr
+Tables -> Tables , TableName | TableName
+TableName -> id
+Columns -> Columns , Column | * | Column
+Column -> ColumnName | TableName . ColumnName
+ColumnName -> id
+Expr -> Expr and Cond | Cond
+Cond -> Column CMP Constant | Column = Column
+CMP -> < | = | >
+Constant -> int_const | str_literal

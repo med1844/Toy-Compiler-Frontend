@@ -1,0 +1,11 @@
+open_par \( (
+close_par \) )
+int_constant (-?)(0|[1-9]\d*) int_const
+plus \+{1} +
+minus \-{1} -
+pow \*\* **
+multiply \*{1} *
+divide /{1} /
+modulo % %
+assignment = =
+identifier \b([a-zA-Z]|\_)([a-zA-Z]|[0-9]|\_){0,32}\b id
