@@ -26,7 +26,7 @@ The format of typeDef and CFG files are described in `typeDef.py` and `cfg.py`, 
 
 1. read input.
 2. use `scanner.parse` to split tokens.
-3. use `Parser.parse` to get `ParseTre`e.
+3. use `Parser.parse` to get `ParseTree`.
 
 ```python
 action = Action.load(cfg, "ACTION")
@@ -104,7 +104,7 @@ class ASTNode(TreeNode):
 
 But if the `actionID` parameter is set, then the `ASTNode` would not replace it with content.
 
-Then just use `astar.action` to decorate functions:
+Then just use `ASTActionRegister.action` to decorate functions:
 
 ```python
 @aar.action("add")
@@ -119,7 +119,7 @@ def _add(add, l, r):
 
 ## About simpleJava
 
-This is a small experimental language. 
+This is a small experimental language.
 
 When I design it, I hope it can support class definition and methods like java, while you can still write code in the biggest scope. That is to say, there is no need to declare a class and write a `public static void main(String[] args)` method to make the code run.
 
@@ -138,6 +138,15 @@ Now simpleJava supports:
 - function declaration with integer return value
 
 The rest rules are just the same as `java` and `C`. See test source files in `/simpleJava` for examples.
+
+### About planned features
+
+I planned to add these important features. However, I finally decided to give up:
+
+- Heap memory allocation (`int## table = new int[x][y]`)
+- `input` function like python
+- class definition
+- iterators and auto unpacking (like C++17: `for (int [x, y] : points)`)
 
 ### How to compile and run
 
