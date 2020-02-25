@@ -218,19 +218,16 @@ class LRItemSet:
 
             if self.cfg.isNonTerminal(curSym):
                 prod = self.cfg.getProduction(cur.productionID)[1][cur.dotPos + 1:]
-                newProds = [prod + (lookForwardSym, ) for lookForwardSym in cur.lookForward]  # precalc to accelerate
-                firstSets = []
+                newProds = (prod + (lookForwardSym, ) for lookForwardSym in cur.lookForward)  # precalc to accelerate
 
                 for newProd in newProds:
                     if newProd not in sequenceToFirst:
                         firstSet = set()
                         firstOfSeq(firstSet, self.cfg, newProd, firstDict)
                         sequenceToFirst[newProd] = firstSet
-                    firstSets.append(sequenceToFirst[newProd])
-
-                for productionID in self.cfg.getProductions(curSym):
-                    newCore = (productionID, 0)
-                    for firstSet in firstSets:
+                    firstSet = sequenceToFirst[newProd]
+                    for productionID in self.cfg.getProductions(curSym):
+                        newCore = (productionID, 0)
                         if newCore not in record or not firstSet.issubset(record[newCore]):
                             que.append(LRItem(self.cfg, productionID, 0, firstSet))
 
