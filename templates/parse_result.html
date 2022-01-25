@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+
+<style type="text/css">
+    html, body {
+        width: 80%;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    table {
+        white-space: pre;
+        font-family: 'Fira Code', 'Courier New', Courier, monospace;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    table tr:nth-child(odd) {
+        background-color:floralwhite;
+    }
+
+    table tr:nth-child(even) {
+        background-color: antiquewhite;
+    }
+
+    th, td {
+        padding: 0.5em;
+    }
+
+    p#PT {
+        white-space: pre;
+        font-family: 'Fira Code', 'Courier New', Courier, monospace;
+    }
+
+    h2 {
+        font-family: Georgia, 'Times New Roman', Times, serif;
+        font-weight: bolder;
+        font-size: xx-large;
+    }
+</style>
+
+<body>
+    <h2>First Set</h2>
+    <table>
+        <tr>
+            <th>Non-terminal</th>
+            <th>First Set</th>
+        </tr>
+        {% for k, v in firstSet.items() %}
+        <tr>
+            <td>{{ k }}</td>
+            <td>{{ v }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <h2>LR Item Table</h2>
+    <table>
+        <tr>
+            <th>Item ID</th>
+            <th>Content</th>
+        </tr>
+        {% for k, v in itemToID.items() %}
+        <tr>
+            <td>{{ v }}</td>
+            <td>{{ k }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <h2>Action & Goto Table</h2>
+    <table>
+        <tr>
+            {% for s in table[0] %}
+            <th>{{ s }}</th>
+            {% endfor %}
+        </tr>
+        {% for i in range(1, table.__len__()) %}
+        <tr>
+            {% for s in table[i] %}
+            <td>{{ s }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </table>
+
+    <h2>Parse String</h2>
+    <p>
+        Input string:
+        <input type='text' id='inputString'>
+        <button onclick="test()" value="Parse">Parse</button>
+    </p>
+
+    <table id='parseResult'>
+        <tr>
+            <th>state stack</th>
+            <th>token stack</th>
+            <th>action</th>
+        </tr>
+    </table>
+    <h2>Generated Parse Tree</h2>
+    <p id='PT'></p>
+    <a href="/"><p>Go back to home page</p></a>
+    <script>
+        async function test() {
+            var string = document.getElementById('inputString').value;
+            const formData = new FormData();
+            formData.append("string", string);
+
+            try {
+                const response = await fetch('/parse', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                PTParagraph = document.getElementById('PT');
+                PTParagraph.textContent = result['pt'];
+                parseResultTable = document.getElementById('parseResult');
+                var rowNum = parseResultTable.rows.length;
+                for (let i = 1; i < rowNum; ++i) parseResultTable.deleteRow(-1);
+                for (let i = 0; i < result['log'].length; ++i) {
+                    let newRow = parseResultTable.insertRow(-1);
+                    for (let j = 0; j < 3; ++j) {
+                        let newCell = newRow.insertCell(j);
+                        newCell.appendChild(document.createTextNode(result['log'][i][j]));
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+
+

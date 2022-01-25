@@ -1169,7 +1169,7 @@ def getCB(cur, *childs):
     cbs.add(cur.cb)
 ast.apply(getCB)
 
-# split code blocks by goto
+# split code blocks
 que = deque(cbs)
 while que:
     cb = que.pop()

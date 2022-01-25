@@ -1,6 +1,6 @@
 open_par \( (
 close_par \) )
-int_constant (-?)(0|[1-9]\d*) int_const
+int_constant (0|[1-9]\d*) int_const
 plus \+{1} +
 minus \-{1} -
 pow \*\* **

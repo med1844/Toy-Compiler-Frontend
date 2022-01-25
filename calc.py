@@ -12,10 +12,10 @@ d = {}
 
 typedef = TypeDefinition.load("simpleCalc/typedef")
 cfg = ContextFreeGrammar.load(typedef, "simpleCalc/CFG4")
-# action, goto = Parser.genActionGoto(typedef, cfg)
-# action.save('simpleCalc/calc_action')
-# goto.save('simpleCalc/calc_goto')
-# exit()
+action, goto = Parser.genActionGoto(typedef, cfg)
+action.save('simpleCalc/calc_action')
+goto.save('simpleCalc/calc_goto')
+exit()
 ar = ParseTreeActionRegister(cfg)
 
 @ar.production('Statement -> E', 'Statement -> Assignment')
@@ -33,6 +33,10 @@ def __e1(e, e1, _, t):
 @ar.production('E -> T', 'T -> F', 'F -> G')
 def __e2(a, b):
     a.val = b.val
+
+@ar.production("E -> - T")
+def __e3(g, neg, t):
+    g.val = -t.val
 
 @ar.production('T -> T * F')
 def __t0(t, t1, _, f):

@@ -21,6 +21,16 @@ class ContextFreeGrammar:
         Given type definition and fileName, create and return a CFG object.
         """
         assert isinstance(typeDef, TypeDefinition)
+        with open(fileName, "r") as f:
+            src = f.read()
+        return ContextFreeGrammar.loadFromString(typeDef, src)
+    
+    @staticmethod
+    def loadFromString(typeDef, string):
+        """
+        Given type definition and CFG string, create and return a CFG object.
+        """
+        assert isinstance(typeDef, TypeDefinition)
         nonTerminals = set()
         allSymbol = set()
         grammarToID = {}
@@ -29,25 +39,24 @@ class ContextFreeGrammar:
 
         temp = []
 
-        with open(fileName, "r") as f:
-            for line in f.readlines():
-                line = line.strip()
-                if not line:
-                    continue
-                nonTerminal, seqs = line.split(" -> ")
+        for line in string.split('\n'):
+            line = line.strip()
+            if not line:
+                continue
+            nonTerminal, seqs = line.split(" -> ")
 
-                if startSymbol is None:
-                    startSymbol = nonTerminal
-                nonTerminals.add(nonTerminal)
-                allSymbol.add(nonTerminal)
+            if startSymbol is None:
+                startSymbol = nonTerminal
+            nonTerminals.add(nonTerminal)
+            allSymbol.add(nonTerminal)
 
-                for seq in seqs.split(" | "):
-                    symbols = seq.split(" ")
-                    temp.append((nonTerminal, symbols))
-                    rawGrammarToID["%s -> %s" % (nonTerminal, seq)] = \
-                        len(rawGrammarToID)
-                    for symbol in seq.split(" "):
-                        allSymbol.add(symbol)
+            for seq in seqs.split(" | "):
+                symbols = seq.split(" ")
+                temp.append((nonTerminal, symbols))
+                rawGrammarToID["%s -> %s" % (nonTerminal, seq)] = \
+                    len(rawGrammarToID)
+                for symbol in seq.split(" "):
+                    allSymbol.add(symbol)
 
         for i, (nonTerminal, symbols) in enumerate(temp):
             symbols = tuple("" if sym == "''"

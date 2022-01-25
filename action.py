@@ -1,12 +1,13 @@
 EMPTY = ""
+import json
 
 
 class Action:
 
-    def __init__(self, cfg, stateCount):
+    def __init__(self, cfg, stateCount, table=None):
         self.cfg = cfg
         self.stateCount = stateCount
-        self.table = [{k: None for k in self.cfg.terminals | {self.cfg.EOF}} for _ in range(self.stateCount)]
+        self.table = [{k: None for k in self.cfg.terminals | {self.cfg.EOF}} for _ in range(self.stateCount)] if table is None else table
 
     def __getitem__(self, item):
         return self.table[item]
@@ -46,17 +47,16 @@ class Action:
 
     def save(self, fileName):
         with open(fileName, "w") as f:
-            f.write(str(self.stateCount) + "\n")
-            f.write(str(self))
+            json.dump({"stateCount": self.stateCount, "table": self.table}, f)
     
+    @staticmethod
+    def loadFromString(cfg, string):
+        obj = json.loads(string)
+        resultAction = Action(cfg, obj["stateCount"], table=obj["table"])
+        return resultAction
+
     @staticmethod
     def load(cfg, fileName):
         with open(fileName, "r") as f:
-            stateCount, _, *rest = f.readlines()
-            processedTerminals = sorted(list(cfg.terminals | {cfg.EOF}), key=str)
-            resultAction = Action(cfg, int(stateCount))
-            for line in rest:
-                stateNum, *actions = line.split('\t')
-                for i, action in enumerate(actions):
-                    resultAction[int(stateNum)][processedTerminals[i]] = eval(action)
+            resultAction = Action.loadFromString(cfg, f.read())
         return resultAction

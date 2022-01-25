@@ -366,9 +366,12 @@ def genActionGoto(typedef, cfg, needItemToID=False):
         return action, goto
 
 
-def parse(tokenList, typedef, cfg, action=None, goto=None):
+def parse(tokenList, typedef, cfg, action=None, goto=None, needLog=False):
     if action is None or goto is None:
         action, goto = genActionGoto(typedef, cfg)
+    
+    if needLog:
+        log = []
     
     stateStack, nodeStack = [0], [PTNode(cfg.EOF)]  # PTNode Objects in nodeStack
 
@@ -376,7 +379,6 @@ def parse(tokenList, typedef, cfg, action=None, goto=None):
     for lexStr, tokenType in tokenList:
         currentState = stateStack[-1]
         while True:
-            # print(currentState, typedef.getName(tokenType))
             if action[currentState][tokenType] is None:
                 print("ERROR: %s, %s" % (currentState, tokenType))
                 exit()
@@ -384,11 +386,23 @@ def parse(tokenList, typedef, cfg, action=None, goto=None):
             if actionType == 0:  # shift to another state
                 stateStack.append(nextState)
                 nodeStack.append(PTNode(lexStr))
+                if needLog:
+                    log.append((str(stateStack), str(nodeStack),
+                        "Shift to state %d" % nextState))
                 break
             elif actionType == 1:
                 prodID = nextState
                 nonTerminal, sequence = cfg.getProduction(prodID)
-                # print("Reduce using grammar %d: %s -> %r" % (prodID, nonTerminal, sequence))
+                if needLog:
+                    log.append(
+                        (
+                            str(stateStack),
+                            str(nodeStack),
+                            "Reduce using production %d: %s -> %s" \
+                            % (prodID, nonTerminal, ' '.join(toStr(typedef, _)
+                                for _ in sequence))
+                        )
+                    )
                 nonTerminalNode = PTNode(nonTerminal, prodID=prodID)
                 for i in range(len(sequence) - 1, -1, -1):
                     symbol = sequence[i]
@@ -407,13 +421,16 @@ def parse(tokenList, typedef, cfg, action=None, goto=None):
                 currentState = stateStack[-1]
                 continue
             elif actionType == 2:
-                # print("Accepted")
+                if needLog:
+                    log.append((str(stateStack), str(nodeStack), "ACCEPTED"))
                 break
             else:
                 assert False
 
         # print(stateStack, nodeStack, tokenType, actionType, nextState)
     # print(nodeStack)
+    if needLog:
+        return ParseTree(nodeStack[-1]), log
     return ParseTree(nodeStack[-1])
 
 

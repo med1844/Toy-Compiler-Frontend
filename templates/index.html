@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<style type="text/css">
+    body {
+        width: 100%;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    h1 {
+        text-align: center;
+        font-family: Verdana, Geneva, Tahoma, sans-serif;
+        font-size: 4em;
+    }
+
+    form {
+        width: fit-content;
+        margin: 0 auto;
+    }
+
+    input[type="submit"] {
+        background-color: dimgray;
+        border: 0px;
+        padding: 0.5em 0.75em;
+        font-family: 'Fira Code', 'Courier New', Courier, monospace;
+        color: white;
+    }
+</style>
+<body>
+    <h1>Your CFG.</h1>
+    <form action="generateLR" method="POST">
+        <textarea name="CFG" cols="60" rows="15"></textarea><br>
+        <input type="submit" value="Generate LR Table">
+    </form>
+</body>
+

@@ -20,12 +20,20 @@ class TypeDefinition:
         """
         Load type definition from given file.
         """
-        td = TypeDefinition()
         with open(fileName, "r") as f:
-            for line in f.readlines():
-                a, b, *rest = line.split()
-                assert len(rest) <= 1
-                td.addDefinition(a, b, *rest)
+            src = f.read()
+        return TypeDefinition.loadFromString(src)
+    
+    @staticmethod
+    def loadFromString(string):
+        """
+        Load type definition from given string.
+        """
+        td = TypeDefinition()
+        for line in string.split('\n'):
+            a, b, *rest = line.split()
+            assert len(rest) <= 1
+            td.addDefinition(a, b, *rest)
         return td
 
     def __init__(self):
@@ -72,5 +80,6 @@ class TypeDefinition:
         return self.__toName[id_]
     
     def getDisplayName(self, id_):
-        assert id_ in self.__toDisplayName
+        if id_ not in self.__toDisplayName:
+            return ""
         return self.__toDisplayName[id_]

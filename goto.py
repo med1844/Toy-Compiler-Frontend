@@ -1,9 +1,12 @@
+import json
+
+
 class Goto:
 
-    def __init__(self, cfg, itemToID):
+    def __init__(self, cfg, stateCount, table=None):
         self.cfg = cfg
-        self.stateCount = itemToID
-        self.table = [{k: None for k in self.cfg.nonTerminals} for _ in range(self.stateCount)]
+        self.stateCount = stateCount
+        self.table = [{k: None for k in self.cfg.nonTerminals} for _ in range(self.stateCount)] if table is None else table
     
     def __getitem__(self, item):
         return self.table[item]
@@ -39,17 +42,16 @@ class Goto:
     
     def save(self, fileName):
         with open(fileName, "w") as f:
-            f.write(str(self.stateCount) + "\n")
-            f.write(str(self))
+            json.dump({"stateCount": self.stateCount, "table": self.table}, f)
+
+    @staticmethod
+    def loadFromString(cfg, string):
+        obj = json.loads(string)
+        resultAction = Goto(cfg, obj["stateCount"], table=obj["table"])
+        return resultAction
     
     @staticmethod
     def load(cfg, fileName):
         with open(fileName, "r") as f:
-            stateCount, _, *rest = f.readlines()
-            processedNonTerminals = sorted(list(cfg.nonTerminals))
-            resultGoto = Goto(cfg, int(stateCount))
-            for line in rest:
-                stateNum, *gotos = line.split('\t')
-                for i, goto in enumerate(gotos):
-                    resultGoto[int(stateNum)][processedNonTerminals[i]] = eval(goto)
+            resultGoto = Goto.loadFromString(cfg, f.read())
         return resultGoto
