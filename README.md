@@ -1,4 +1,5 @@
 # newCompilerTest
+
 Python implementation of scanner, LR(1) Parsing method, Action &amp; Goto Table, Parse Tree &amp; AST.
 
 On top of these, I implemented a compiler that translate an experimental language `simpleJava` into NASM.
@@ -161,3 +162,13 @@ Since this is just a compiler test, I decided not to use tools that parse comman
 5. `nasm -f win32 FILENAME.asm`
 6. `gcc FILENAME.obj -o FILENAME.exe`
 7. `FILENAME.exe`
+
+## Planned improvements
+
+- [ ] Rewrite lexer using DFA instead of NFA-based `re`
+- [ ] Migrate to typed python
+- [ ] Make parser a module
+- [ ] Add unit tests for each module
+- [ ] Define interfaces for CFG parser & implement other parsers (LL1, etc)
+- [ ] Move `simpleSQL` and `simpleJava` to other repositories
+- [ ] Add CLI support for generating a standalone front end parser (.py) given type definition, CFG definition, and tree action.
