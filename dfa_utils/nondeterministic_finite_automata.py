@@ -1,10 +1,114 @@
 from typing import List, Tuple, Dict, Callable, Iterable, TypeVar, Deque
 from finite_automata_node import FiniteAutomataNode
 from collections import namedtuple, deque
+from functools import reduce
 
 
 T = TypeVar("T")
 
+
+# consider this as a trait... why there's no trait in python
+class RegexOperation(object):
+
+    @staticmethod
+    def kleene_star(r: T) -> T:
+        raise NotImplementedError()
+        
+    @staticmethod
+    def or_(l: T, r: T) -> T:
+        raise NotImplementedError()
+
+    @staticmethod
+    def plus(r: T) -> T:
+        raise NotImplementedError()
+
+    @staticmethod
+    def concat(l: T, r: T) -> T:
+        raise NotImplementedError()
+
+
+class StringRegexOperation(RegexOperation):
+    # impl RegexOperation for StringRegexOperation
+    # @override
+    @staticmethod
+    def kleene_star(r: str) -> str:
+        return "(%s*)" % r if len(r) == 1 or (r.startswith("(") and r.endswith(")")) else "((%s)*)" % r
+
+    @staticmethod
+    def or_(l: str, r: str) -> str:
+        return "(%s|%s)" % (l, r)
+
+    @staticmethod
+    def plus(r: str) -> str:
+        return "(%s+)" % r
+
+    @staticmethod
+    def concat(l: str, r: str) -> str:
+        return "%s->%s" % (l, r)
+
+
+class NFARegexOperation(RegexOperation):
+    # impl RegexOperation for NFARegexOperation
+    pass
+
+
+def tokenize_first_layer(r: str) -> Iterable[str]:
+    # only tokenize characters or subregexes that are at the highest level.
+    # this helps simplifying recurring patterns inside of parentheses
+    # see function `test_first_layer_tokenizer` for more examples
+    layer = 0
+    buffer = []
+    for s in r:
+        if s == "(":
+            layer += 1
+        if layer == 0:
+            if buffer:
+                yield "".join(buffer[1:-1])
+                buffer.clear()
+            yield s
+        else:
+            buffer.append(s)
+        if s == ")":
+            layer -= 1
+    assert layer == 0
+    if buffer:
+        yield "".join(buffer[1:-1])
+        buffer.clear()
+
+
+def parse_first_layer(r: Iterable[str], regex_operation: RegexOperation):
+    # regex_operation must have implemented trait RegexOperation
+    # the return type also depends on the chosen regex operation...
+    # Maybe it's more similar to something like RegexOperation<String>?
+    operands = deque()
+    # first pass, does not take binary op into consideration
+    for s in r:
+        if s == "*":
+            operands.append(regex_operation.kleene_star(operands.pop()))
+        elif s == "+":
+            operands.append(regex_operation.plus(operands.pop()))
+        elif len(s) == 1:
+            operands.append(s)
+        else:
+            operands.append(parse_first_layer(tokenize_first_layer(s), regex_operation))
+
+    # second pass, deal with or_ operands & concat
+    stack = deque()  # stores temporary tokens
+    concated_operands = deque()
+    while operands:
+        s = operands.popleft()
+        if s == "|":
+            l = reduce(regex_operation.concat, stack, stack.popleft())
+            stack.clear()
+            concated_operands.append(l)
+        else:
+            stack.append(s)
+    l = reduce(regex_operation.concat, stack, stack.popleft())
+    stack.clear()
+    concated_operands.append(l)
+
+    assert len(concated_operands) == 1
+    return concated_operands.popleft()
 
 class NondeterministicFiniteAutomata(object):
 
@@ -12,262 +116,90 @@ class NondeterministicFiniteAutomata(object):
         self.start_node = start_node
         self.end_node = end_node
 
-    @staticmethod
-    def tokenize_regex(r: str) -> Iterable[str]:
-        """
-        Tokenize the regex for easier process...
 
-        - `a|b*abb` -> `["a", "|", "b", "*", "abb"]`
-        - `(abb|cdd)` -> `["(", "abb", "|", "cdd", ")"]`
-        """
-        i = 0
-        special_chars = {"(", ")", "*", "|", "ϵ"}
-        while i < len(r):
-            # we are dealing with r[l:]; try to find one word
-            if r[i] in special_chars:
-                yield r[i]
-                i += 1
-            else:
-                l = i
-                while i < len(r) and r[i] not in special_chars:
-                    i += 1
-                yield r[l:i]
-
-    # @classmethod
-    # def parse(cls, r: List[str]) -> str:
-    #     if r[-1] == "*":
-    #         return "(*%s)" % cls.parse(r[:-1])
-
-    #     def get_last_operand(r: List[str]) -> Tuple[str, int]:
-    #         if r[-1] == ")":
-    #             lvl = 0
-    #             i = len(r) - 1
-    #             while 0 <= i:
-    #                 if r[i] == ")":
-    #                     lvl += 1
-    #                 if r[i] == "(":
-    #                     lvl -= 1
-    #                 if lvl == 0:
-    #                     return (cls.parse(r[i + 1:-1]), i)
-    #                 i -= 1
-    #         if r[-1] not in {"*", "|"}:
-    #             return (r[-1], len(r) - 1)
-    #         raise ValueError("r just end with ')' or word: %s is not valid" % r[-1])
-
-    #     operand, new_i = get_last_operand(r)
-    #     if new_i > 0:
-    #         if r[new_i - 1] == "|":
-    #             return "(%s|%s)" % (cls.parse(r[:new_i - 1]), operand)
-    #         else:
-    #             return "(%s+%s)" % (cls.parse(r[:new_i - 1]), operand)
-    #     else:
-    #         return operand
 
 
     @classmethod
     def from_string(cls, r: str) -> "NondeterministicFiniteAutomata":
-
-        def is_word(c: str):
-            return c not in "|*()+"
-
-        def build(start_node: FiniteAutomataNode, r: Deque[str]):
-            # r -> s
-            # r -> sr
-            # r -> s|r
-            # r -> (r)
-            # r -> s*r
-            # r -> s+r
-            # r -> ϵ
-            # s -> char
-
-            s = r.popleft()
-            if is_word(s):
-                
-
-        # """
-        # - Build the postfix: a b * abb + |
-
-        # - `a|b*abb` -> `a b * abb + |`
-        # - `(a|b)*abb(ϵ|a|b)*` -> `a b | * abb ϵ a b | | * + +`
-        # - `(abb|cdd)` -> `abb cdd |`
-        # - `a*|b*` -> `a * b * |`
-        # - `((a|b)*(cc|dd))*ee` -> `a b | * cc dd | + * ee +`
-        # - `(ab*(c|d)*)|(e|(f*g))` -> `ab * c d | * + e f * g + | |`
-        # - `abb(a|b)` -> `abb a b | +`
-        # - `(a|b*)c` -> `a b * | c +`
-        # """
-        # # print(r)
-
-        # op_pri = {
-        #     "*": 3,
-        #     "+": 2,
-        #     "|": 1
-        # }
-
-        # op_stack: List[str] = []
-        # operands: List[str] = []
-
-        # def add_operator(op: str):
-        #     while op_stack and op_stack[-1] != "(" and op_pri[op_stack[-1]] > 
-
-        # for c in reversed(list(cls.tokenize_regex(r))):
-        #     if c == ")":
-        #         op_stack.append(c)
-        #     elif c == "(":
-        #         temp_operands = []
-        #         while op_stack and op_stack[-1] != "(":
-        #             rr, ll = operands.pop(), operands.pop()
-        #             temp_operands.append("(%s%s%s)" % (ll, op_stack.pop(), rr))
-        #         op_stack.pop()
-        #         while len(temp_operands) > 1:
-        #             rr, ll = temp_operands.pop(), temp_operands.pop()
-        #             temp_operands.append("(%s+%s)" % (ll, rr))
-        #         if temp_operands:
-        #             operands.append(temp_operands.pop())
-        #     elif c in "|":
-        #         op_stack.append(c)
-        #     elif c in "*":
-        #         op_stack.append(c)
-        #     else:
-        #         operands.append(c)
-        #     print("0. op stack:", op_stack)
-        #     print("1. operands:", operands)
-
-        # while op_stack:
-        #     rr, ll = operands.pop(), operands.pop()
-        #     operands.append("(%s%s%s)" % (ll, op_stack.pop(), rr))
-
-        # print("0. op stack:", op_stack)
-        # print("1. operands:", operands)
-
-        # while len(operands) > 1:
-        #     rr, ll = operands.pop(), operands.pop()
-        #     operands.append("(%s+%s)" % (ll, rr))
-
-        # return eval_postfix(operands)
+        pass
 
 
-# code written by new bing:
-# class Node:
-#     def __init__(self, value):
-#         self.value = value
-#         self.left = None
-#         self.right = None
-
-# def parse_regex(regex):
-#     stack = []
-#     for char in regex:
-#         if char == '(':
-#             stack.append(char)
-#         elif char == ')':
-#             subexpr = ''
-#             while stack and stack[-1] != '(':
-#                 subexpr = stack.pop() + subexpr
-#             if not stack:
-#                 raise ValueError('Unbalanced parentheses')
-#             stack.pop()
-#             node = parse_subexpr(subexpr)
-#             stack.append(node)
-#         else:
-#             stack.append(char)
-
-#     if '(' in stack or ')' in stack:
-#         raise ValueError('Unbalanced parentheses')
-
-#     return parse_subexpr(stack)
-
-# def parse_subexpr(subexpr):
-#     if not subexpr:
-#         return None
-
-#     # Handle concatenation
-#     for i in range(len(subexpr)-1, -1, -1):
-#         if isinstance(subexpr[i], Node) or (subexpr[i] not in '*|'):
-#             node = Node('+')
-#             node.left = parse_subexpr(subexpr[:i+1])
-#             node.right = parse_subexpr(subexpr[i+1:])
-#             return node
-
-#     # Handle alternation
-#     for i in range(len(subexpr)-1, -1, -1):
-#         if subexpr[i] == '|':
-#             node = Node('|')
-#             node.left = parse_subexpr(subexpr[:i])
-#             node.right = parse_subexpr(subexpr[i+1:])
-#             return node
-
-#     # Handle Kleene star
-#     if isinstance(subexpr[-1], Node) or (subexpr[-1] != '*'):
-#         return parse_subregex_unit(subexpr[-1])
-    
-#     node = Node('*')
-#     node.left = parse_subregex_unit(parse_subregex_unit[:-2])
-    
-# def parse_subregex_unit(unit):
-#     if isinstance(unit, Node):
-#         return unit
-    
-#     return Node(unit)
-
-# # Example usage:
-
-# tree_root_node=parse_regex('(a|b)*abb')
-
-
-def test_tokenizer():
+def test_first_layer_tokenizer():
     for regex, expected_output in (
-        ("ab", ["ab"]),
+        ("ab", ["a", "b"]),
         ("a|b", ["a", "|", "b"]),
-        ("ab|cd", ["ab", "|", "cd"]),
-        ("a|b*abb", ["a", "|", "b", "*", "abb"]),
-        ("(35)*124", ["(", "35", ")", "*", "124"]),
-        ("(a|ϵ)*", ["(", "a", "|", "ϵ", ")", "*"])
+        ("ab|cd", ["a", "b", "|", "c", "d"]),
+        ("(ab*(c|d)*)|(e|(f*g))", ["ab*(c|d)*", "|", "e|(f*g)"]),
+        ("(a|b)*abb(ϵ|a|b)*", ["a|b", "*", "a", "b", "b", "ϵ|a|b", "*"]),
+        ("(a|b)c*d", ["a|b", "c", "*", "d"]),
+        ("(c|d)*", ["c|d", "*"]),
     ):
-        assert list(NondeterministicFiniteAutomata.tokenize_regex(regex)) == expected_output
+        assert list(tokenize_first_layer(regex)) == expected_output
+
+
+def test_first_layer_parser():
+    op = StringRegexOperation()
+    for regex, expected_output in (
+        ("(c|d)*", "((c|d)*)"),
+        ("(ab*(c|d)*)|(e|(f*g))", "(a->(b*)->((c|d)*)|(e|(f*)->g))"),
+        ("a*bcc|c*dee", "((a*)->b->c->c|(c*)->d->e->e)"),
+        ("ab", "a->b"),
+        ("a|b", "(a|b)"),
+        ("ab|cd", "(a->b|c->d)"),
+        ("ab*|cd", "(a->(b*)|c->d)"),
+        ("a|b*", "(a|(b*))"),
+        ("((a|b)*(cc|dd))*ee", "(((a|b)*)->(c->c|d->d)*)->e->e"),
+        ("ab|cd|ef", "((a->b|c->d)|e->f)"),
+        ("abc|cde", "(a->b->c|c->d->e)"),
+        ("ac(bc|de)|ff", "(a->c->(b->c|d->e)|f->f)")
+    ):
+        assert parse_first_layer(tokenize_first_layer(regex), op) == expected_output
 
 
 if __name__ == "__main__":
-    def rebuild_infix(p: List[str]) -> str:
-        stack = []
-        for c in p:
-            if c == "*":
-                stack.append("(%s*)" % (stack.pop()))
-            elif c == "|":
-                r = stack.pop()
-                l = stack.pop()
-                stack.append("(%s|%s)" % (l, r))
-            elif c == "+":
-                r = stack.pop()
-                l = stack.pop()
-                stack.append("(%s+%s)" % (l, r))
-            else:
-                stack.append(c)
-
-        return stack.pop()
-
-
-    for regex, target_lisp in (
-        ("ab", "ab"),
-        ("a|b", "(a|b)"),
-        ("ab|cd", "(ab|cd)"),
-        ("ab*|cd", "((ab*)|cd)"),
-        ("a|b*", "(a|(b*))"),
-        ("abc|cde", "(abc|cde)"),
-        ("a|b*abb", "(a|((b*)+abb)"),
-        ("(35)*124", "((35*)+124)"),
-        ("(a|b)*abb", "(((a|b)*)abb)"),
-        ("(a|b)*abb(ϵ|a|b)*", "((((a|b)*)+abb)+(((ϵ|a)|b)*))"),
-        ("(ab*(c|d)*)|(e|(f*g))", "(((ab*)+((c|d)*))|(e|((f*)+g)))"),
-        ("a*bcc|c*dee", "(((a*)+bcc)|((c*)+dee))"),
-        # [a], [+]
-        # [(a*)], [+]
-        # [(a*), bcc], [+]
-        # [(a*), bcc], [+] -> evaluate ops with higher priority than | -> [((a*)+bcc)], [|]
-        # [((a*)+bcc), c], [|, +]
-        # [((a*)+bcc), (c*)], [|, +],
-        # [((a*)+bcc), (c*), dee], [|, +, +]
-        # [((a*)+bcc), ((c*)+dee)], [|]
-        # [(((a*)+bcc)+((c*)+dee))]
-        ("(a|b)c*d", "((a|b)+(c*)+d)"),
-    ):
-        print(NondeterministicFiniteAutomata.from_string(regex, rebuild_infix), target_lisp)
+    test_first_layer_tokenizer()
+    test_first_layer_parser()
+    # def rebuild_infix(p: List[str]) -> str:
+    #     stack = []
+    #     for c in p:
+    #         if c == "*":
+    #             stack.append("(%s*)" % (stack.pop()))
+    #         elif c == "|":
+    #             r = stack.pop()
+    #             l = stack.pop()
+    #             stack.append("(%s|%s)" % (l, r))
+    #         elif c == "+":
+    #             r = stack.pop()
+    #             l = stack.pop()
+    #             stack.append("(%s+%s)" % (l, r))
+    #         else:
+    #             stack.append(c)
+    #
+    #     return stack.pop()
+    #
+    #
+    # for regex, target_lisp in (
+    #     ("ab", "ab"),
+    #     ("a|b", "(a|b)"),
+    #     ("ab|cd", "(ab|cd)"),
+    #     ("ab*|cd", "((ab*)|cd)"),
+    #     ("a|b*", "(a|(b*))"),
+    #     ("abc|cde", "(abc|cde)"),
+    #     ("a|b*abb", "(a|((b*)+abb)"),
+    #     ("(35)*124", "((35*)+124)"),
+    #     ("(a|b)*abb", "(((a|b)*)abb)"),
+    #     ("(a|b)*abb(ϵ|a|b)*", "((((a|b)*)+abb)+(((ϵ|a)|b)*))"),
+    #     ("(ab*(c|d)*)|(e|(f*g))", "(((ab*)+((c|d)*))|(e|((f*)+g)))"),
+    #     ("a*bcc|c*dee", "(((a*)+bcc)|((c*)+dee))"),
+    #     # [a], [+]
+    #     # [(a*)], [+]
+    #     # [(a*), bcc], [+]
+    #     # [(a*), bcc], [+] -> evaluate ops with higher priority than | -> [((a*)+bcc)], [|]
+    #     # [((a*)+bcc), c], [|, +]
+    #     # [((a*)+bcc), (c*)], [|, +],
+    #     # [((a*)+bcc), (c*), dee], [|, +, +]
+    #     # [((a*)+bcc), ((c*)+dee)], [|]
+    #     # [(((a*)+bcc)+((c*)+dee))]
+    #     ("(a|b)c*d", "((a|b)+(c*)+d)"),
+    # ):
+    #     print(NondeterministicFiniteAutomata.from_string(regex, rebuild_infix), target_lisp)
