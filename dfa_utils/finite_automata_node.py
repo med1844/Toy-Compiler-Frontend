@@ -1,4 +1,53 @@
-from typing import List
+from typing import Callable, Dict, List, Self, Tuple, Any
+
+
+# modified implementation of https://stackoverflow.com/a/6798042
+class ParameterizedSingleton(type):
+    _table: Dict[Tuple, Self] = {}
+    def __call__(cls, *args: Any) -> Any:
+        if args not in cls._table:
+            cls._table[args] = super(ParameterizedSingleton, cls).__call__(*args)
+        return cls._table[args]
+
+
+# Since transitions only stores a function, cache them using singleton pattern could save time & space
+class Transition(metaclass=ParameterizedSingleton):
+    def __call__(self, *_: Any) -> bool:
+        raise NotImplementedError()
+
+
+# enum Transition {
+#   EpsilonTransition,
+#   CharTransition(char)
+# }
+#
+# impl Fn<Args> for EpsilonTransition
+class EpsilonTransition(Transition):
+    _instance = None
+    def __new__(cls) -> Self:
+        if not isinstance(cls._instance, cls):
+            cls._instance = object.__new__(cls)
+        return cls._instance
+
+    def __call__(self, *_: Any) -> bool:
+        return True
+
+    def __repr__(self) -> str:
+        return "-ϵ>"
+
+
+
+# impl Fn<Args> for CharTransition
+class CharTransition(Transition):
+    def __init__(self, c: str) -> None:
+        assert len(c) == 1
+        self.c = c
+
+    def __call__(self, c: str, *_: Any) -> bool:
+        return self.c == c
+
+    def __repr__(self) -> str:
+        return "-%s>" % self.c
 
 
 class FiniteAutomataNode(object):
@@ -6,14 +55,39 @@ class FiniteAutomataNode(object):
     __id_counter = -1
 
     @classmethod
-    def __get_id(cls):
+    def __get_id(cls) -> int:
         cls.__id_counter += 1
         return cls.__id_counter
 
-    def __init__(self, is_final_state: bool = False) -> None:
-        self.is_final_state = is_final_state
-        self.successors: List["FiniteAutomataNode"] = []
+    @classmethod
+    def reset_counter(cls) -> None:
+        # WARNING:should only be used for testing purpose!
+        cls.__id_counter = -1
+
+    def __init__(self) -> None:
+        self.successors: List[Tuple[Callable[..., bool], "FiniteAutomataNode"]] = []
         self.id = self.__get_id()
 
     def __repr__(self) -> str:
-        return "(%d%s -> %r)" % (self.id, "(END)" if self.is_final_state else "", tuple(c.id for c in self.successors))
+        return "\n".join("%d %r %d" % (self.id, cond, nxt.id) for cond, nxt in self.successors)
+
+    def add_edge(self, cond: Transition, other: "FiniteAutomataNode") -> None:
+        self.successors.append((cond, other))
+
+
+def test_epsilon_transition():
+    a = EpsilonTransition()
+    b = EpsilonTransition()
+    assert a is b
+
+def test_char_transition():
+    a = CharTransition("a")
+    b = CharTransition("a")
+    assert a is b
+    c = CharTransition("b")
+    d = CharTransition("b")
+    assert c is d
+    assert a is not c
+    e = CharTransition("a")
+    assert a is e
+
