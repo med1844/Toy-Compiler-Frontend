@@ -193,19 +193,3 @@ def test_parsing_str():
     ):
         assert parse(deque(regex), op) == expected_output
 
-
-def test_parsing_nfa():
-    op = NFANodeRegexOperation()
-    for regex in (
-        "a",
-        "a|b",
-        "a*",
-        "ab|cd|ef"
-        "public|fn|trait|i8|i16|i32|i64|isize|impl|for|->",
-        "0|(1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)*"
-    ):
-        FiniteAutomataNode.reset_counter()
-        print(regex, parse(deque(regex), op))
-
-if __name__ == "__main__":
-    test_parsing_nfa()
