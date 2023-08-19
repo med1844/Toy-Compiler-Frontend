@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List, Self, Tuple, Any
+from typing import Dict, List, Self, Tuple, Any
 
 
 # modified implementation of https://stackoverflow.com/a/6798042
@@ -64,12 +64,13 @@ class FiniteAutomataNode(object):
         # WARNING:should only be used for testing purpose!
         cls.__id_counter = -1
 
-    def __init__(self) -> None:
-        self.successors: List[Tuple[Callable[..., bool], "FiniteAutomataNode"]] = []
+    def __init__(self, is_accept=False) -> None:
+        self.successors: List[Tuple[Transition, "FiniteAutomataNode"]] = []
         self.id = self.__get_id()
+        self.is_accept = is_accept
 
     def __repr__(self) -> str:
-        return "\n".join("%d %r %d" % (self.id, cond, nxt.id) for cond, nxt in self.successors)
+        return "\n".join("%s %r %s" % (("(%d)" if self.is_accept else "%d") % self.id, cond, ("(%d)" if nxt.is_accept else "%d") % nxt.id) for cond, nxt in self.successors)
 
     def add_edge(self, cond: Transition, other: "FiniteAutomataNode") -> None:
         self.successors.append((cond, other))

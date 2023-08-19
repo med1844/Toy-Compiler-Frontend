@@ -1,26 +1,19 @@
-from typing import Callable, TypeVar, Deque, Set
+from typing import TypeVar, Deque
+from finite_automata import FiniteAutomata
 from finite_automata_node import FiniteAutomataNode, EpsilonTransition, CharTransition
 from collections import deque
 from abc import ABC
 
 
-class NondeterministicFiniteAutomata(object):
+class NondeterministicFiniteAutomata(FiniteAutomata):
 
     def __init__(self, start_node: FiniteAutomataNode, end_node: FiniteAutomataNode) -> None:
-        self.start_node = start_node
+        super().__init__(start_node)
         self.end_node = end_node
 
-    def __repr__(self) -> str:
-        # iterate through all FA Nodes, in dfs fashion?
-        def dfs(cur_node: FiniteAutomataNode, action: Callable[[FiniteAutomataNode], None], visited: Set[int]):
-            visited.add(cur_node.id)
-            action(cur_node)
-            for _, nxt_node in cur_node.successors:
-                if nxt_node.id not in visited:
-                    dfs(nxt_node, action, visited)
-        buffer = []
-        dfs(self.start_node, lambda node: buffer.append(repr(node)), set())
-        return "\n".join(buffer)
+    @classmethod
+    def from_string(cls, regex: str) -> "NondeterministicFiniteAutomata":
+        return parse(deque(regex), NFANodeRegexOperation())
 
 
 T = TypeVar("T")
@@ -117,9 +110,7 @@ class NFANodeRegexOperation(RegexOperation):
 
     @staticmethod
     def concat(l: NondeterministicFiniteAutomata, r: NondeterministicFiniteAutomata) -> NondeterministicFiniteAutomata:
-        # end_node must have no successors and start_node must have no predecessors
-        # thus simply merge l.end_node with r.start_node
-        l.end_node.successors = r.start_node.successors
+        l.end_node.add_edge(EpsilonTransition(), r.start_node)
         return NondeterministicFiniteAutomata(l.start_node, r.end_node)
 
     @staticmethod
@@ -160,6 +151,8 @@ def parse(r: Deque[str], regex_operation: RegexOperation):
             break
         elif s == "*":
             ops.append(regex_operation.kleene_star(ops.pop()))
+        elif s == "?":
+            ops.append(regex_operation.optional(ops.pop()))
         elif s == "+":
             ops.append(regex_operation.plus(ops.pop()))
         elif s == "|":
@@ -192,4 +185,10 @@ def test_parsing_str():
         ("0|(1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)*", "(0|(1|2|3|4|5|6|7|8|9)->((0|1|2|3|4|5|6|7|8|9)*))")
     ):
         assert parse(deque(regex), op) == expected_output
+
+
+# TODO is there good ways to automatically test the structure of the constructed NFA?
+def test_parsing_nfa_0():
+    regex = "a"
+
 
