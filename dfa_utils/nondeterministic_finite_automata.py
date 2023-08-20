@@ -189,6 +189,22 @@ def test_parsing_str():
         assert parse(deque(regex), op) == expected_output
 
 
+def test_nfa_hash():
+    # test if a back edge causes difference in the hash result
+    s0 = FiniteAutomataNode()
+    e0 = FiniteAutomataNode()
+    s0.add_edge(CharTransition("a"), e0)
+    e0.add_edge(EpsilonTransition(), s0)
+    nfa_0 = NondeterministicFiniteAutomata(s0, e0)
+
+    s1 = FiniteAutomataNode()
+    e1 = FiniteAutomataNode()
+    s1.add_edge(CharTransition("a"), e1)
+    nfa_1 = NondeterministicFiniteAutomata(s1, e1)
+
+    assert hash(nfa_0) != hash(nfa_1)
+
+
 def test_parsing_nfa_0():
     constructed_nfa = NondeterministicFiniteAutomata.from_string("a")
     s = FiniteAutomataNode()
