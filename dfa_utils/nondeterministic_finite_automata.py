@@ -198,5 +198,92 @@ def test_parsing_nfa_0():
     assert hash(constructed_nfa) == hash(expected_nfa)
 
 
-if __name__ == "__main__":
-    test_parsing_nfa_0()
+def test_parsing_nfa_1():
+    constructed_nfa = NondeterministicFiniteAutomata.from_string("a|b")
+    s = FiniteAutomataNode()
+    e = FiniteAutomataNode()
+    sa = FiniteAutomataNode()
+    ea = FiniteAutomataNode()
+    sb = FiniteAutomataNode()
+    eb = FiniteAutomataNode()
+    s.add_edge(EpsilonTransition(), sa)
+    s.add_edge(EpsilonTransition(), sb)
+    sa.add_edge(CharTransition("a"), ea)
+    sb.add_edge(CharTransition("b"), eb)
+    ea.add_edge(EpsilonTransition(), e)
+    eb.add_edge(EpsilonTransition(), e)
+    expected_nfa = NondeterministicFiniteAutomata(s, e)
+    assert hash(constructed_nfa) == hash(expected_nfa)
+
+
+def test_parsing_nfa_2():
+    constructed_nfa = NondeterministicFiniteAutomata.from_string("ab")
+    n0 = FiniteAutomataNode()
+    n1 = FiniteAutomataNode()
+    n2 = FiniteAutomataNode()
+    n3 = FiniteAutomataNode()
+    n0.add_edge(CharTransition("a"), n1)
+    n1.add_edge(EpsilonTransition(), n2)
+    n2.add_edge(CharTransition("b"), n3)
+    expected_nfa = NondeterministicFiniteAutomata(n0, n3)
+    assert hash(constructed_nfa) == hash(expected_nfa)
+
+
+def test_parsing_nfa_3():
+    constructed_nfa = NondeterministicFiniteAutomata.from_string("a*")
+    s = FiniteAutomataNode()
+    e = FiniteAutomataNode()
+    sa = FiniteAutomataNode()
+    ea = FiniteAutomataNode()
+    sa.add_edge(CharTransition("a"), ea)
+    ea.add_edge(EpsilonTransition(), sa)
+    ea.add_edge(EpsilonTransition(), e)
+    s.add_edge(EpsilonTransition(), sa)
+    s.add_edge(EpsilonTransition(), e)
+    expected_nfa = NondeterministicFiniteAutomata(s, e)
+    assert hash(constructed_nfa) == hash(expected_nfa)
+
+
+def test_parsing_nfa_4():
+    constructed_nfa = NondeterministicFiniteAutomata.from_string("a?")
+    s = FiniteAutomataNode()
+    e = FiniteAutomataNode()
+    sa = FiniteAutomataNode()
+    ea = FiniteAutomataNode()
+    sa.add_edge(CharTransition("a"), ea)
+    ea.add_edge(EpsilonTransition(), e)
+    s.add_edge(EpsilonTransition(), sa)
+    s.add_edge(EpsilonTransition(), e)
+    expected_nfa = NondeterministicFiniteAutomata(s, e)
+    assert hash(constructed_nfa) == hash(expected_nfa)
+
+
+def test_parsing_nfa_5():
+    constructed_nfa = NondeterministicFiniteAutomata.from_string("(c|d)*")
+    s = FiniteAutomataNode()
+    e = FiniteAutomataNode()
+    s0 = FiniteAutomataNode()
+    e0 = FiniteAutomataNode()
+    sc = FiniteAutomataNode()
+    ec = FiniteAutomataNode()
+    sd = FiniteAutomataNode()
+    ed = FiniteAutomataNode()
+
+    sc.add_edge(CharTransition("c"), ec)
+    sd.add_edge(CharTransition("d"), ed)
+
+    s0.add_edge(EpsilonTransition(), sc)
+    s0.add_edge(EpsilonTransition(), sd)
+
+    ec.add_edge(EpsilonTransition(), e0)
+    ed.add_edge(EpsilonTransition(), e0)
+
+    e0.add_edge(EpsilonTransition(), s0)
+
+    s.add_edge(EpsilonTransition(), e)
+    s.add_edge(EpsilonTransition(), s0)
+
+    e0.add_edge(EpsilonTransition(), e)
+
+    expected_nfa = NondeterministicFiniteAutomata(s, e)
+    assert hash(constructed_nfa) == hash(expected_nfa)

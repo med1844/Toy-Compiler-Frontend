@@ -51,12 +51,12 @@ class FiniteAutomata:
                 second_pass_que.append(node)  # current node is a sink node: no out edge, or all out edges are back edges
 
         node_hash: Dict[FiniteAutomataNode, int] = {node: len(node.successors) + (10000 * node.is_accept) for node in edges.keys()}
-        print(node_hash)
         visited: Set[FiniteAutomataNode] = set()
         while second_pass_que:
             cur_node = second_pass_que.popleft()
             if cur_node in visited:
                 continue
+            visited.add(cur_node)
             x = node_hash[cur_node]
             x = ((x >> 16) ^ x) * 0x45d9f3b
             x = ((x >> 16) ^ x) * 0x45d9f3b
