@@ -101,6 +101,8 @@ class NFANodeRegexOperation(RegexOperation):
         # s   -> . ->   e
         #   \    .    /
         #     -> r ->
+        if len(ops) == 1:
+            return ops[0]
         s = FiniteAutomataNode()
         e = FiniteAutomataNode()
         for op in ops:
@@ -187,8 +189,14 @@ def test_parsing_str():
         assert parse(deque(regex), op) == expected_output
 
 
-# TODO is there good ways to automatically test the structure of the constructed NFA?
 def test_parsing_nfa_0():
-    regex = "a"
+    constructed_nfa = NondeterministicFiniteAutomata.from_string("a")
+    s = FiniteAutomataNode()
+    e = FiniteAutomataNode()
+    s.add_edge(CharTransition("a"), e)
+    expected_nfa = NondeterministicFiniteAutomata(s, e)
+    assert hash(constructed_nfa) == hash(expected_nfa)
 
 
+if __name__ == "__main__":
+    test_parsing_nfa_0()
