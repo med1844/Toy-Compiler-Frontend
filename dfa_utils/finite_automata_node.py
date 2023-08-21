@@ -52,21 +52,8 @@ class CharTransition(Transition):
 
 class FiniteAutomataNode(object):
 
-    __id_counter = -1
-
-    @classmethod
-    def __get_id(cls) -> int:
-        cls.__id_counter += 1
-        return cls.__id_counter
-
-    @classmethod
-    def reset_counter(cls) -> None:
-        # WARNING:should only be used for testing purpose!
-        cls.__id_counter = -1
-
     def __init__(self, is_accept=False) -> None:
         self.successors: List[Tuple[Transition, "FiniteAutomataNode"]] = []
-        self.id = self.__get_id()
         self.is_accept = is_accept
 
     def __repr__(self) -> str:

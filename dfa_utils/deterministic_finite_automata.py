@@ -25,10 +25,10 @@ class FANodeClosure:
 
     def __hash__(self) -> int:
         # could also use bitmasks, but too expensive?
-        return hash(tuple(sorted(node.id for node in self.closure)))
+        return hash(tuple(sorted((node for node in self.closure), key=id)))
 
     def __eq__(self, other: Self) -> bool:
-        return set(node.id for node in self.closure) == set(node.id for node in other.closure)
+        return self.closure == other.closure  # that's the same set of nodes, simply compare the set equivalence
 
 
 def epsilon_closure(n: Iterable[FiniteAutomataNode]) -> FANodeClosure:
@@ -91,8 +91,7 @@ def test_dfa():
         "c(a|b)?d",
         "(a|b)*abb(a|b)*",
     ):
-        nfa = NondeterministicFiniteAutomata.from_string(regex)
-        dfa = NFA_to_DFA(nfa)
+        dfa = DeterminsticFiniteAutomata.from_string(regex)
         print("%s\n%s:\n%s\n%s" % ("=" * 50, regex, dfa, "=" * 50))
 
 
@@ -117,11 +116,64 @@ def test_dfa_1():
 
 
 def test_dfa_2():
-    constructed_dfa = NFA_to_DFA(NondeterministicFiniteAutomata.from_string("a*"))
+    constructed_dfa = DeterminsticFiniteAutomata.from_string("a*")
     n0 = FiniteAutomataNode(is_accept=True)
     n1 = FiniteAutomataNode(is_accept=True)
     n0.add_edge(CharTransition("a"), n1)
     n1.add_edge(CharTransition("a"), n1)
+    expected_dfa = DeterminsticFiniteAutomata(n0)
+    assert hash(constructed_dfa) == hash(expected_dfa)
+
+
+def test_dfa_3():
+    constructed_dfa = DeterminsticFiniteAutomata.from_string("a?")
+    n0 = FiniteAutomataNode(is_accept=True)
+    n1 = FiniteAutomataNode(is_accept=True)
+    n0.add_edge(CharTransition("a"), n1)
+    expected_dfa = DeterminsticFiniteAutomata(n0)
+    assert hash(constructed_dfa) == hash(expected_dfa)
+
+
+def test_dfa_4():
+    constructed_dfa = DeterminsticFiniteAutomata.from_string("abc")
+    n0 = FiniteAutomataNode()
+    n1 = FiniteAutomataNode()
+    n2 = FiniteAutomataNode()
+    n3 = FiniteAutomataNode(is_accept=True)
+    n0.add_edge(CharTransition("a"), n1)
+    n1.add_edge(CharTransition("b"), n2)
+    n2.add_edge(CharTransition("c"), n3)
+    expected_dfa = DeterminsticFiniteAutomata(n0)
+    assert hash(constructed_dfa) == hash(expected_dfa)
+
+
+def test_dfa_5():
+    constructed_dfa = DeterminsticFiniteAutomata.from_string("pub|pri")
+    n0 = FiniteAutomataNode()
+    n1 = FiniteAutomataNode()
+    n2 = FiniteAutomataNode()
+    n3 = FiniteAutomataNode(is_accept=True)
+    n4 = FiniteAutomataNode()
+    n5 = FiniteAutomataNode(is_accept=True)
+    n0.add_edge(CharTransition("p"), n1)
+    n1.add_edge(CharTransition("u"), n2)
+    n1.add_edge(CharTransition("r"), n4)
+    n2.add_edge(CharTransition("b"), n3)
+    n4.add_edge(CharTransition("i"), n5)
+    expected_dfa = DeterminsticFiniteAutomata(n0)
+    assert hash(constructed_dfa) == hash(expected_dfa)
+
+
+def test_dfa_6():
+    # test if middle accepts are recognized
+    constructed_dfa = DeterminsticFiniteAutomata.from_string("a|abc")
+    n0 = FiniteAutomataNode()
+    n1 = FiniteAutomataNode(is_accept=True)
+    n2 = FiniteAutomataNode()
+    n3 = FiniteAutomataNode(is_accept=True)
+    n0.add_edge(CharTransition("a"), n1)
+    n1.add_edge(CharTransition("b"), n2)
+    n2.add_edge(CharTransition("c"), n3)
     expected_dfa = DeterminsticFiniteAutomata(n0)
     assert hash(constructed_dfa) == hash(expected_dfa)
 
