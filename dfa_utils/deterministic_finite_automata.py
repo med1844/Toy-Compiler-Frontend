@@ -2,12 +2,20 @@ from collections import deque
 from typing import Deque, Set, Dict, Self, Iterable, List
 from nondeterministic_finite_automata import NondeterministicFiniteAutomata
 from finite_automata import FiniteAutomata
-from finite_automata_node import FiniteAutomataNode, EpsilonTransition, Transition
+from finite_automata_node import CharTransition, FiniteAutomataNode, EpsilonTransition, Transition
 
 
 class DeterminsticFiniteAutomata(FiniteAutomata):
     def __init__(self, start_node: FiniteAutomataNode) -> None:
         super().__init__(start_node)
+
+    @classmethod
+    def from_string(cls, regex: str) -> Self:
+        return cls.from_nfa(NondeterministicFiniteAutomata.from_string(regex))
+
+    @classmethod
+    def from_nfa(cls, nfa: NondeterministicFiniteAutomata) -> Self:
+        return NFA_to_DFA(nfa)
 
 
 class FANodeClosure:
@@ -83,12 +91,37 @@ def test_dfa():
         "c(a|b)?d",
         "(a|b)*abb(a|b)*",
     ):
-        FiniteAutomataNode.reset_counter()
         nfa = NondeterministicFiniteAutomata.from_string(regex)
-        FiniteAutomataNode.reset_counter()
         dfa = NFA_to_DFA(nfa)
         print("%s\n%s:\n%s\n%s" % ("=" * 50, regex, dfa, "=" * 50))
 
 
-if __name__ == "__main__":
-    test_dfa()
+def test_dfa_0():
+    constructed_dfa = DeterminsticFiniteAutomata.from_string("a")
+    n0 = FiniteAutomataNode()
+    n1 = FiniteAutomataNode(is_accept=True)
+    n0.add_edge(CharTransition("a"), n1)
+    expected_dfa = DeterminsticFiniteAutomata(n0)
+    assert hash(constructed_dfa) == hash(expected_dfa)
+
+
+def test_dfa_1():
+    constructed_dfa = DeterminsticFiniteAutomata.from_string("a|b")
+    n0 = FiniteAutomataNode()
+    n1 = FiniteAutomataNode(is_accept=True)
+    n2 = FiniteAutomataNode(is_accept=True)
+    n0.add_edge(CharTransition("a"), n1)
+    n0.add_edge(CharTransition("b"), n2)
+    expected_dfa = DeterminsticFiniteAutomata(n0)
+    assert hash(constructed_dfa) == hash(expected_dfa)
+
+
+def test_dfa_2():
+    constructed_dfa = NFA_to_DFA(NondeterministicFiniteAutomata.from_string("a*"))
+    n0 = FiniteAutomataNode(is_accept=True)
+    n1 = FiniteAutomataNode(is_accept=True)
+    n0.add_edge(CharTransition("a"), n1)
+    n1.add_edge(CharTransition("a"), n1)
+    expected_dfa = DeterminsticFiniteAutomata(n0)
+    assert hash(constructed_dfa) == hash(expected_dfa)
+

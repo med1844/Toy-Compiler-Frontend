@@ -166,6 +166,18 @@ Since this is just a compiler test, I decided not to use tools that parse comman
 ## Planned improvements
 
 - [ ] Rewrite lexer using DFA instead of NFA-based `re`
+  - [x] Impl regex parser that generates NFA
+    - [x] `*`
+    - [x] `|`
+    - [x] `?`
+    - [x] `()`
+    - [ ] `+` (requires impl `Copy` trait for `FiniteAutomata`)
+  - [x] Impl NFA to DFA algo
+    - [x] Add tests
+  - [ ] Impl minimize DFA algo
+    - [ ] Add tests
+  - [x] Write a hash function that encodes the structural information of arbitrary finite automata for auto tests
+  - [ ] Implement a lexer that's based on DFA
 - [ ] Migrate to typed python
 - [ ] Make parser a module
 - [ ] Add unit tests for each module

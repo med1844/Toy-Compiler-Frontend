@@ -189,7 +189,7 @@ def test_parsing_str():
         assert parse(deque(regex), op) == expected_output
 
 
-def test_nfa_hash():
+def test_nfa_hash_0():
     # test if a back edge causes difference in the hash result
     s0 = FiniteAutomataNode()
     e0 = FiniteAutomataNode()
@@ -203,6 +203,23 @@ def test_nfa_hash():
     nfa_1 = NondeterministicFiniteAutomata(s1, e1)
 
     assert hash(nfa_0) != hash(nfa_1)
+
+
+def test_nfa_hash_1():
+    # make sure that the order we add edges doesn't effect hash result
+    s0 = FiniteAutomataNode()
+    e0 = FiniteAutomataNode()
+    s0.add_edge(CharTransition("a"), e0)
+    s0.add_edge(CharTransition("b"), e0)
+    nfa_0 = NondeterministicFiniteAutomata(s0, e0)
+
+    s1 = FiniteAutomataNode()
+    e1 = FiniteAutomataNode()
+    s1.add_edge(CharTransition("b"), e1)
+    s1.add_edge(CharTransition("a"), e1)
+    nfa_1 = NondeterministicFiniteAutomata(s1, e1)
+
+    assert hash(nfa_0) == hash(nfa_1)
 
 
 def test_parsing_nfa_0():
@@ -303,3 +320,89 @@ def test_parsing_nfa_5():
 
     expected_nfa = NondeterministicFiniteAutomata(s, e)
     assert hash(constructed_nfa) == hash(expected_nfa)
+
+def test_parsing_nfa_6():
+    constructed_nfa = NondeterministicFiniteAutomata.from_string("(ab*(c|d)*)|(e|(f*g))")
+    n0 = FiniteAutomataNode()
+    n1 = FiniteAutomataNode()
+    n0.add_edge(CharTransition("a"), n1)
+
+    n2 = FiniteAutomataNode()
+    n3 = FiniteAutomataNode()
+    n2.add_edge(CharTransition("b"), n3)
+    n3.add_edge(EpsilonTransition(), n2)
+
+    n4 = FiniteAutomataNode()
+    n5 = FiniteAutomataNode()
+    n4.add_edge(EpsilonTransition(), n5)
+    n4.add_edge(EpsilonTransition(), n2)
+    n3.add_edge(EpsilonTransition(), n5)
+
+    n1.add_edge(EpsilonTransition(), n4)
+
+    n6 = FiniteAutomataNode()
+    n7 = FiniteAutomataNode()
+    n6.add_edge(CharTransition("c"), n7)
+
+    n8 = FiniteAutomataNode()
+    n9 = FiniteAutomataNode()
+    n8.add_edge(CharTransition("d"), n9)
+
+    n10 = FiniteAutomataNode()
+    n11 = FiniteAutomataNode()
+
+    n10.add_edge(EpsilonTransition(), n6)
+    n10.add_edge(EpsilonTransition(), n8)
+    n7.add_edge(EpsilonTransition(), n11)
+    n9.add_edge(EpsilonTransition(), n11)
+
+    n11.add_edge(EpsilonTransition(), n10)
+
+    n12 = FiniteAutomataNode()
+    n13 = FiniteAutomataNode()
+    n12.add_edge(EpsilonTransition(), n10)
+    n12.add_edge(EpsilonTransition(), n13)
+    n11.add_edge(EpsilonTransition(), n13)
+
+    n5.add_edge(EpsilonTransition(), n12)
+
+    n14 = FiniteAutomataNode()
+
+    n15 = FiniteAutomataNode()
+    n16 = FiniteAutomataNode()
+    n15.add_edge(CharTransition("e"), n16)
+
+    n17 = FiniteAutomataNode()
+    n18 = FiniteAutomataNode()
+    n17.add_edge(CharTransition("f"), n18)
+    n18.add_edge(EpsilonTransition(), n17)
+
+    n19 = FiniteAutomataNode()
+    n20 = FiniteAutomataNode()
+    n19.add_edge(EpsilonTransition(), n20)
+    n19.add_edge(EpsilonTransition(), n17)
+    n18.add_edge(EpsilonTransition(), n20)
+
+    n14.add_edge(EpsilonTransition(), n15)
+    n14.add_edge(EpsilonTransition(), n19)
+
+    n21 = FiniteAutomataNode()
+    n22 = FiniteAutomataNode()
+    n21.add_edge(CharTransition("g"), n22)
+    n20.add_edge(EpsilonTransition(), n21)
+
+    n23 = FiniteAutomataNode()
+    n16.add_edge(EpsilonTransition(), n23)
+    n22.add_edge(EpsilonTransition(), n23)
+
+    n24 = FiniteAutomataNode()
+    n25 = FiniteAutomataNode()
+
+    n24.add_edge(EpsilonTransition(), n0)
+    n24.add_edge(EpsilonTransition(), n14)
+    n13.add_edge(EpsilonTransition(), n25)
+    n23.add_edge(EpsilonTransition(), n25)
+
+    expected_nfa = NondeterministicFiniteAutomata(n24, n25)
+    assert hash(constructed_nfa) == hash(expected_nfa)
+

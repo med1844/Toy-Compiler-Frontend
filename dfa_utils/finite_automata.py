@@ -1,6 +1,6 @@
 from collections import deque
 from typing import Callable, Deque, Dict, Set, Tuple, List
-from finite_automata_node import FiniteAutomataNode, Transition
+from finite_automata_node import CharTransition, FiniteAutomataNode, Transition, EpsilonTransition
 
 
 class FiniteAutomata:
@@ -63,7 +63,43 @@ class FiniteAutomata:
             node_hash[cur_node] = x
             for prv_cond, prv_node in rev_edges[cur_node]:
                 if prv_node not in visited:
-                    node_hash[prv_node] ^= id(prv_cond) ^ node_hash[cur_node]
+                    node_hash[prv_node] ^= (id(prv_cond) * node_hash[cur_node]) & 0xffffffffffffffff
                     second_pass_que.append(prv_node)
 
         return node_hash[self.start_node]
+
+
+def test_fa_hash_0():
+    # try attack hash function
+    n0 = FiniteAutomataNode()
+    n1 = FiniteAutomataNode()
+    n2 = FiniteAutomataNode()
+    n0.add_edge(EpsilonTransition(), n1)
+    n0.add_edge(EpsilonTransition(), n2)
+    n1.add_edge(CharTransition("a"), n2)
+    n2.add_edge(CharTransition("b"), n1)
+
+    m0 = FiniteAutomataNode()
+    m1 = FiniteAutomataNode()
+    m2 = FiniteAutomataNode()
+    m0.add_edge(EpsilonTransition(), m2)
+    m0.add_edge(EpsilonTransition(), m1)
+    m1.add_edge(CharTransition("a"), m2)
+    m2.add_edge(CharTransition("b"), m1)
+
+    assert hash(FiniteAutomata(n0)) == hash(FiniteAutomata(m0))
+
+
+def test_fa_hash_1():
+    # test if hash function captures self-loop (edge that goes to itself...)
+    n0 = FiniteAutomataNode()
+    n1 = FiniteAutomataNode()
+    n0.add_edge(CharTransition("a"), n1)
+    n0.add_edge(CharTransition("a"), n0)
+
+    m0 = FiniteAutomataNode()
+    m1 = FiniteAutomataNode()
+    m0.add_edge(CharTransition("a"), m1)
+
+    assert hash(FiniteAutomata(n0)) != hash(FiniteAutomata(m0))
+
