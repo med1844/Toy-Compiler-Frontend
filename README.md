@@ -182,7 +182,10 @@ Since this is just a compiler test, I decided not to use tools that parse comman
   - [ ] Implement a lexer that's based on DFA
 - [ ] Migrate to typed python
 - [ ] Make parser a module
+- [ ] Optimize parser memory usage by eliminating building actual parse tree
 - [ ] Add unit tests for each module
 - [ ] Define interfaces for CFG parser & implement other parsers (LL1, etc)
 - [ ] Move `simpleSQL` and `simpleJava` to other repositories
+  - [ ] For `simpleSQL`, implement an operator-based sql engine in a separate project
+  - [ ] For ``simpleJava, implement IR passes & maybe generate LLVM IRs in a separate project
 - [ ] Add CLI support for generating a standalone front end parser (.py) given type definition, CFG definition, and tree action.
