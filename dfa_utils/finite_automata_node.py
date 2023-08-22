@@ -56,9 +56,6 @@ class FiniteAutomataNode(object):
         self.successors: List[Tuple[Transition, "FiniteAutomataNode"]] = []
         self.is_accept = is_accept
 
-    def __repr__(self) -> str:
-        return "\n".join("%s %r %s" % (("(%d)" if self.is_accept else "%d") % self.id, cond, ("(%d)" if nxt.is_accept else "%d") % nxt.id) for cond, nxt in self.successors)
-
     def add_edge(self, cond: Transition, other: "FiniteAutomataNode") -> None:
         self.successors.append((cond, other))
 
