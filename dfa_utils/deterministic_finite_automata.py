@@ -177,3 +177,43 @@ def test_dfa_6():
     expected_dfa = DeterminsticFiniteAutomata(n0)
     assert hash(constructed_dfa) == hash(expected_dfa)
 
+
+def test_dfa_7():
+    constructed_dfa = DeterminsticFiniteAutomata.from_string("a+")
+    n0 = FiniteAutomataNode()
+    n1 = FiniteAutomataNode(is_accept=True)
+    n0.add_edge(CharTransition("a"), n1)
+    n1.add_edge(CharTransition("a"), n1)
+    expected_dfa = DeterminsticFiniteAutomata(n0)
+    assert hash(constructed_dfa) == hash(expected_dfa)
+
+
+def test_dfa_8():
+    # the result of (a|b)+ could be further simplified by DFA minimization
+    constructed_dfa = DeterminsticFiniteAutomata.from_string("abb(a|b)+")
+    n0 = FiniteAutomataNode()
+    n1 = FiniteAutomataNode()
+    n2 = FiniteAutomataNode()
+    n3 = FiniteAutomataNode()
+    n4 = FiniteAutomataNode()
+    n5 = FiniteAutomataNode()
+    n6 = FiniteAutomataNode()
+    n7 = FiniteAutomataNode()
+
+    n0.add_edge(CharTransition("a"), n1)
+    n1.add_edge(CharTransition("b"), n2)
+    n2.add_edge(CharTransition("b"), n3)
+    n3.add_edge(CharTransition("a"), n4)
+    n3.add_edge(CharTransition("b"), n5)
+    n4.add_edge(CharTransition("a"), n6)
+    n4.add_edge(CharTransition("b"), n7)
+    n5.add_edge(CharTransition("a"), n6)
+    n5.add_edge(CharTransition("b"), n7)
+    n6.add_edge(CharTransition("a"), n6)
+    n6.add_edge(CharTransition("b"), n7)
+    n7.add_edge(CharTransition("a"), n6)
+    n7.add_edge(CharTransition("b"), n7)
+
+    expected_dfa = DeterminsticFiniteAutomata(n0)
+    assert hash(constructed_dfa) == hash(expected_dfa)
+
