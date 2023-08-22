@@ -1,4 +1,4 @@
-from typing import TypeVar, Deque
+from typing import TypeVar, Deque, Dict, Self, Set
 from finite_automata import FiniteAutomata
 from finite_automata_node import FiniteAutomataNode, EpsilonTransition, CharTransition
 from collections import deque
@@ -10,6 +10,24 @@ class NondeterministicFiniteAutomata(FiniteAutomata):
     def __init__(self, start_node: FiniteAutomataNode, end_node: FiniteAutomataNode) -> None:
         super().__init__(start_node)
         self.end_node = end_node
+
+    # impl Copy for NondetermFiniteAutomata
+    def __deepcopy__(self, memo=None) -> Self:
+        # now that node id has been removed, we could recursively copy things
+        def dfs(cur_node: FiniteAutomataNode, node_mapping: Dict[FiniteAutomataNode, FiniteAutomataNode], visited: Set[FiniteAutomataNode]):
+            if cur_node in visited:
+                return
+            visited.add(cur_node)
+            for cond, nxt_node in cur_node.successors:
+                if nxt_node not in node_mapping:
+                    node_mapping[nxt_node] = FiniteAutomataNode()
+                node_mapping[cur_node].add_edge(cond, node_mapping[nxt_node])
+                if nxt_node not in visited:
+                    dfs(nxt_node, node_mapping, visited)
+
+        mappings = {self.start_node: FiniteAutomataNode()}
+        dfs(self.start_node, mappings, set())
+        return NondeterministicFiniteAutomata(mappings[self.start_node], mappings[self.end_node])
 
     @classmethod
     def from_string(cls, regex: str) -> "NondeterministicFiniteAutomata":
@@ -220,6 +238,20 @@ def test_nfa_hash_1():
     nfa_1 = NondeterministicFiniteAutomata(s1, e1)
 
     assert hash(nfa_0) == hash(nfa_1)
+
+
+def test_nfa_deepcopy_0():
+    from copy import deepcopy
+    for regex in (
+        "a*bcc|c*dee",
+        "((a|b)*(cc|dd))*ee",
+        "ac(bc|de)|ff",
+        "a*",
+        "a",
+    ):
+        a = NondeterministicFiniteAutomata.from_string(regex)
+        b = deepcopy(a)
+        assert hash(a) == hash(b)
 
 
 def test_parsing_nfa_0():
