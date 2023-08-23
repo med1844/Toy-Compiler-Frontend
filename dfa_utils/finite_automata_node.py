@@ -50,6 +50,17 @@ class CharTransition(Transition):
         return "-%s>" % self.c
 
 
+class RangeTransition(Transition):
+    def __init__(self, *ranges: range) -> None:
+        self.ranges = ranges
+
+    def __call__(self, c: str, *_: Any) -> bool:
+        return any(ord(c) in r for r in self.ranges)
+
+    def __repr__(self) -> str:
+        return "-[%s]>" % "".join("%s-%s" % (chr(r.start), chr(r.stop - 1)) for r in self.ranges)
+
+
 class FiniteAutomataNode(object):
 
     def __init__(self, is_accept=False) -> None:

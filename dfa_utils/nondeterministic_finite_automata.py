@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import TypeVar, Deque, Dict, Self, Set
 from finite_automata import FiniteAutomata
-from finite_automata_node import FiniteAutomataNode, EpsilonTransition, CharTransition
+from finite_automata_node import FiniteAutomataNode, EpsilonTransition, CharTransition, RangeTransition
 from collections import deque
 from abc import ABC
 
@@ -45,6 +45,10 @@ class RegexOperation(ABC):
     def make_nfa(s: str) -> T:
         raise NotImplementedError()
 
+    @staticmethod
+    def make_range_nfa(*ranges: range) -> T:
+        raise NotImplementedError()
+
     @classmethod
     def kleene_star(cls, r: T) -> T:
         raise NotImplementedError()
@@ -71,6 +75,10 @@ class StringRegexOperation(RegexOperation):
     @staticmethod
     def make_nfa(s: str) -> str:
         return s
+
+    @staticmethod
+    def make_range_nfa(*ranges: range) -> str:
+        return "[%s]" % "".join("%s-%s" % (chr(r.start), chr(r.stop - 1)) for r in ranges)
 
     @classmethod
     def kleene_star(cls, r: str) -> str:
@@ -102,6 +110,13 @@ class NFANodeRegexOperation(RegexOperation):
         e = FiniteAutomataNode()
         s.add_edge(CharTransition(c) if c != "ϵ" else EpsilonTransition(), e)
         return NondeterministicFiniteAutomata(s, e)
+
+    @staticmethod
+    def make_range_nfa(*ranges: range) -> NondeterministicFiniteAutomata:
+        n0 = FiniteAutomataNode()
+        n1 = FiniteAutomataNode()
+        n0.add_edge(RangeTransition(*ranges), n1)
+        return NondeterministicFiniteAutomata(n0, n1)
 
     @classmethod
     def kleene_star(cls, r: NondeterministicFiniteAutomata) -> NondeterministicFiniteAutomata:
@@ -180,6 +195,17 @@ def parse(r: Deque[str], regex_operation: RegexOperation):
             ops.append(regex_operation.plus(ops.pop()))
         elif s == "|":
             or_ops.append(reduce_concat())
+        elif s == "[":
+            ranges = []
+            while True:
+                s = r.popleft()
+                _ = r.popleft()
+                e = r.popleft()
+                ranges.append(range(ord(s), ord(e) + 1))
+                if r[0] == "]":
+                    r.popleft()
+                    break
+            ops.append(regex_operation.make_range_nfa(*ranges))
         elif len(s) == 1:
             if s == "\\":
                 s = r.popleft()
@@ -207,7 +233,9 @@ def test_parsing_str():
         ("abc|cde", "(a->b->c|c->d->e)"),
         ("ac(bc|de)|ff", "(a->c->(b->c|d->e)|f->f)"),
         ("public|fn|trait|i8|i16|i32|i64|isize|impl|for|->", "(p->u->b->l->i->c|f->n|t->r->a->i->t|i->8|i->1->6|i->3->2|i->6->4|i->s->i->z->e|i->m->p->l|f->o->r|-->>)"),
-        ("0|(1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)*", "(0|(1|2|3|4|5|6|7|8|9)->((0|1|2|3|4|5|6|7|8|9)*))")
+        ("0|(1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)*", "(0|(1|2|3|4|5|6|7|8|9)->((0|1|2|3|4|5|6|7|8|9)*))"),
+        ("0|[1-9][0-9]*", "(0|[1-9]->(([0-9])*))"),
+        ("([a-zA-Z]|_)([a-zA-Z0-9]|_)*", "([a-zA-Z]|_)->(([a-zA-Z0-9]|_)*)")
     ):
         assert parse(deque(regex), op) == expected_output
 
@@ -592,4 +620,34 @@ def test_parsing_nfa_12():
         n0.add_edge(CharTransition(regex), n1)
         expected_nfa = NondeterministicFiniteAutomata(n0, n1)
         assert hash(constructed_nfa) == hash(expected_nfa)
+
+
+def test_parsing_nfa_13():
+    constructed_nfa = NondeterministicFiniteAutomata.from_string("[a-zA-Z]([a-zA-Z0-9]|_)*")
+    n0 = FiniteAutomataNode()
+    n1 = FiniteAutomataNode()
+    n2 = FiniteAutomataNode()
+    n3 = FiniteAutomataNode()
+    n4 = FiniteAutomataNode()
+    n5 = FiniteAutomataNode()
+    n6 = FiniteAutomataNode()
+    n7 = FiniteAutomataNode()
+    n8 = FiniteAutomataNode()
+    n9 = FiniteAutomataNode()
+
+    n0.add_edge(RangeTransition(range(ord("a"), ord("z") + 1), range(ord("A"), ord("Z") + 1)), n1)
+    n1.add_edge(EpsilonTransition(), n2)
+    n2.add_edge(EpsilonTransition(), n3)
+    n2.add_edge(EpsilonTransition(), n9)
+    n3.add_edge(EpsilonTransition(), n4)
+    n3.add_edge(EpsilonTransition(), n5)
+    n4.add_edge(RangeTransition(range(ord("a"), ord("z") + 1), range(ord("A"), ord("Z") + 1), range(ord("0"), ord("9") + 1)), n5)
+    n5.add_edge(EpsilonTransition(), n8)
+    n6.add_edge(CharTransition("_"), n7)
+    n7.add_edge(EpsilonTransition(), n8)
+    n8.add_edge(EpsilonTransition(), n3)
+    n8.add_edge(EpsilonTransition(), n9)
+
+    expected_nfa = NondeterministicFiniteAutomata(n0, n9)
+    assert hash(constructed_nfa) == hash(expected_nfa)
 
