@@ -181,6 +181,8 @@ def parse(r: Deque[str], regex_operation: RegexOperation):
         elif s == "|":
             or_ops.append(reduce_concat())
         elif len(s) == 1:
+            if s == "\\":
+                s = r.popleft()
             ops.append(regex_operation.make_nfa(s))
     if ops:
         or_ops.append(reduce_concat())
@@ -577,3 +579,17 @@ def test_parsing_nfa_11():
 
     expected_nfa = NondeterministicFiniteAutomata(n0, n8)
     assert hash(constructed_nfa) == hash(expected_nfa)
+
+
+def test_parsing_nfa_12():
+    # test \, they should help recognize *, (, ), [, ], |, +, ?, etc
+    for regex in (
+        "*", "(", ")", "[", "]", "|", "+", "?", "."
+    ):
+        constructed_nfa = NondeterministicFiniteAutomata.from_string("\\" + regex)
+        n0 = FiniteAutomataNode()
+        n1 = FiniteAutomataNode()
+        n0.add_edge(CharTransition(regex), n1)
+        expected_nfa = NondeterministicFiniteAutomata(n0, n1)
+        assert hash(constructed_nfa) == hash(expected_nfa)
+
