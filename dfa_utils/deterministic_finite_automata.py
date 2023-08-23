@@ -1,5 +1,5 @@
 from collections import deque
-from typing import Deque, Set, Dict, Self, Iterable, List
+from typing import Deque, Optional, Set, Dict, Self, Iterable, List
 from nondeterministic_finite_automata import NondeterministicFiniteAutomata
 from finite_automata import FiniteAutomata
 from finite_automata_node import CharTransition, FiniteAutomataNode, EpsilonTransition, Transition
@@ -16,6 +16,31 @@ class DeterminsticFiniteAutomata(FiniteAutomata):
     @classmethod
     def from_nfa(cls, nfa: NondeterministicFiniteAutomata) -> Self:
         return NFA_to_DFA(nfa)
+
+    def match_first(self, s: str) -> Optional[str]:
+        # TODO this is SO UGLY, think about more elegant implementation
+        cur_node = self.start_node
+        buffer = []
+        accepted_buffer = []
+        for c in s:
+            any_hit = False
+            if cur_node.is_accept:
+                accepted_buffer.extend(buffer)
+                buffer.clear()
+            for cond, nxt_node in cur_node.successors:
+                if cond(c):
+                    buffer.append(c)
+                    cur_node = nxt_node
+                    any_hit = True
+                    break
+            if not any_hit:
+                break
+        if cur_node.is_accept:
+            accepted_buffer.extend(buffer)
+            buffer.clear()
+        if accepted_buffer:
+            return "".join(accepted_buffer)
+        return None
 
 
 class FANodeClosure:
@@ -216,4 +241,23 @@ def test_dfa_8():
 
     expected_dfa = DeterminsticFiniteAutomata(n0)
     assert hash(constructed_dfa) == hash(expected_dfa)
+
+
+def test_dfa_iter_0():
+    dfa = DeterminsticFiniteAutomata.from_string("a*")
+    for target, expected in (
+        ("aabaaabba", "aa"),
+        ("baaaa", None)
+    ):
+        assert dfa.match_first(target) == expected
+
+
+def test_dfa_iter_1():
+    dfa = DeterminsticFiniteAutomata.from_string("0|(1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)*")
+    for target, expected in (
+        ("10872865 168505", "10872865"),
+        ("010101", "0"),
+        ("7950X3D", "7950")
+    ):
+        assert dfa.match_first(target) == expected
 
