@@ -1,7 +1,7 @@
 from typing import Dict, List, Self, Tuple, Any
 
 
-# modified implementation of https://stackoverflow.com/a/6798042
+# modified version of https://stackoverflow.com/a/6798042
 class ParameterizedSingleton(type):
     _table: Dict[Tuple, Self] = {}
     def __call__(cls, *args: Any) -> Any:
@@ -23,18 +23,11 @@ class Transition(metaclass=ParameterizedSingleton):
 #
 # impl Fn<Args> for EpsilonTransition
 class EpsilonTransition(Transition):
-    _instance = None
-    def __new__(cls) -> Self:
-        if not isinstance(cls._instance, cls):
-            cls._instance = object.__new__(cls)
-        return cls._instance
-
     def __call__(self, *_: Any) -> bool:
         return True
 
     def __repr__(self) -> str:
         return "-ϵ>"
-
 
 
 # impl Fn<Args> for CharTransition
@@ -48,17 +41,6 @@ class CharTransition(Transition):
 
     def __repr__(self) -> str:
         return "-%s>" % self.c
-
-
-class RangeTransition(Transition):
-    def __init__(self, *ranges: range) -> None:
-        self.ranges = ranges
-
-    def __call__(self, c: str, *_: Any) -> bool:
-        return any(ord(c) in r for r in self.ranges)
-
-    def __repr__(self) -> str:
-        return "-[%s]>" % "".join("%s-%s" % (chr(r.start), chr(r.stop - 1)) for r in self.ranges)
 
 
 class FiniteAutomataNode(object):
@@ -75,6 +57,7 @@ def test_epsilon_transition():
     a = EpsilonTransition()
     b = EpsilonTransition()
     assert a is b
+
 
 def test_char_transition():
     a = CharTransition("a")

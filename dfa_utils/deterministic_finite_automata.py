@@ -261,3 +261,24 @@ def test_dfa_iter_1():
     ):
         assert dfa.match_first(target) == expected
 
+
+def test_dfa_iter_2():
+    dfa = DeterminsticFiniteAutomata.from_string("([a-zA-Z]|_)([a-zA-Z0-9]|_)*")
+    for target, expected in (
+        ("DeterminsticFiniteAutomata.from_string('a*')", "DeterminsticFiniteAutomata"),
+        ("__init__(self)", "__init__"),
+        ("n7.add_edge(CharTransition('b'), n7)", "n7"),
+        ("1 + 2", None)
+    ):
+        assert dfa.match_first(target) == expected
+
+
+def test_dfa_iter_3():
+    dfa = DeterminsticFiniteAutomata.from_string(r"/\*.*\*/")
+
+    for target, expected in (
+        ("/* ([a-zA-Z]|_)([a-zA-Z0-9]|_)* */", "/* ([a-zA-Z]|_)([a-zA-Z0-9]|_)* */"),
+        ("/*comment*/?ok", "/*comment*/"),
+        ("int i = 0; /* initialize index var */", None)
+    ):
+        assert dfa.match_first(target) == expected

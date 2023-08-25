@@ -171,9 +171,10 @@ Since this is just a compiler test, I decided not to use tools that parse comman
     - [x] `|`
     - [x] `?`
     - [x] `()`
-    - [ ] `+` (requires impl `Copy` trait for `FiniteAutomata`)
-    - [ ] `\`
-    - [ ] `[x-x]`
+    - [x] `+` (requires impl `Copy` trait for `FiniteAutomata`)
+    - [x] `\`
+    - [x] `[x-x]`
+    - [ ] `.`
   - [x] Impl NFA to DFA algo
     - [x] Add tests
   - [ ] Impl minimize DFA algo
