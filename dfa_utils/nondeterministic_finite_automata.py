@@ -1,7 +1,7 @@
 from copy import deepcopy
-from typing import TypeVar, Deque, Dict, Self, Set
+from typing import TypeVar, Deque, Dict, Self, Set, List, Tuple
 from finite_automata import FiniteAutomata
-from finite_automata_node import FiniteAutomataNode, EpsilonTransition, CharTransition
+from finite_automata_node import FiniteAutomataNode, EpsilonTransition, CharTransition, Transition
 from collections import deque
 from abc import ABC
 
@@ -228,6 +228,52 @@ def parse(r: Deque[str], regex_operation: RegexOperation):
         or_ops.append(reduce_concat())
     l = regex_operation.or_(*or_ops)
     return l
+
+
+# an essential method for Brzozowski's algorithm
+# very similar to FA's hash function, but I have no idea how to reuse code that's complicated like this
+def reverse_edge(fa: FiniteAutomata) -> NondeterministicFiniteAutomata:
+    # create a new FiniteAutomata with all edges reversed.
+    edges: Dict[
+        FiniteAutomataNode, List[Tuple[Transition, FiniteAutomataNode]]
+    ] = {}
+    visit_order: Dict[
+        FiniteAutomataNode, int
+    ] = {}  # would help determine back edges & sink nodes
+    counter = 0
+    first_pass_que = deque([fa.start_node])
+    while first_pass_que:
+        cur_node = first_pass_que.popleft()
+        if cur_node in edges:
+            continue
+        edges[cur_node] = cur_node.successors
+        visit_order[cur_node] = counter
+        counter += 1
+        for _, nxt_node in cur_node.successors:
+            if nxt_node not in edges:
+                first_pass_que.append(nxt_node)
+
+    rev_start_nodes: Set[FiniteAutomataNode] = set()
+    for node, edge in edges.items():
+        if all(visit_order[nxt_node] <= visit_order[node] for _, nxt_node in edge):
+            rev_start_nodes.add(
+                node
+            )  # current node is a sink node: no out edge, or all out edges are back edges
+
+    # from old nodes to new nodes in the new edge reversed NFA
+    node_map: Dict[FiniteAutomataNode, FiniteAutomataNode] = {old_node: FiniteAutomataNode() for old_node in edges.keys()}
+    for src_node, successors in edges.items():
+        for cond, nxt_node in successors:
+            node_map[nxt_node].add_edge(cond, node_map[src_node])
+
+    if len(rev_start_nodes) > 1:
+        rev_start_node = FiniteAutomataNode()
+        for r in rev_start_nodes:
+            rev_start_node.add_edge(EpsilonTransition(), node_map[r])
+    else:
+        rev_start_node = node_map[rev_start_nodes.pop()]
+
+    return NondeterministicFiniteAutomata(rev_start_node, node_map[fa.start_node])
 
 
 def test_parsing_str():
@@ -639,4 +685,42 @@ def test_parsing_nfa_13():
     constructed_nfa = NondeterministicFiniteAutomata.from_string("[0-3]+")
     expected_nfa = NondeterministicFiniteAutomata.from_string("(0|1|2|3)+")
     assert hash(constructed_nfa) == hash(expected_nfa)
+
+
+def test_fa_rev_edge_0():
+    n0 = FiniteAutomataNode()
+    n1 = FiniteAutomataNode()
+    n0.add_edge(CharTransition("a"), n1)
+    n1.add_edge(EpsilonTransition(), n0)
+    fa = FiniteAutomata(n0)
+    constructed_fa_rev = reverse_edge(fa)
+
+    n2 = FiniteAutomataNode()
+    n3 = FiniteAutomataNode()
+    n2.add_edge(EpsilonTransition(), n3)
+    n3.add_edge(CharTransition("a"), n2)
+    expected_fa_rev = FiniteAutomata(n2)
+    assert hash(constructed_fa_rev) == hash(expected_fa_rev)
+
+
+def test_fa_rev_edge_1():
+    n0 = FiniteAutomataNode()
+    n1 = FiniteAutomataNode()
+    n2 = FiniteAutomataNode()
+
+    n0.add_edge(CharTransition("a"), n1)
+    n1.add_edge(CharTransition("b"), n2)
+
+    fa = FiniteAutomata(n0)
+    constructed_fa_rev = reverse_edge(fa)
+
+    n3 = FiniteAutomataNode()
+    n4 = FiniteAutomataNode()
+    n5 = FiniteAutomataNode()
+
+    n5.add_edge(CharTransition("b"), n4)
+    n4.add_edge(CharTransition("a"), n3)
+
+    expected_fa_rev = FiniteAutomata(n2)
+    assert hash(constructed_fa_rev) == hash(expected_fa_rev)
 

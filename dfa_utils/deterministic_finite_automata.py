@@ -1,6 +1,6 @@
 from collections import deque
-from typing import Deque, Optional, Set, Dict, Self, Iterable, List
-from nondeterministic_finite_automata import NondeterministicFiniteAutomata
+from typing import Deque, Optional, Set, Dict, Self, Iterable, List, Tuple, TypeVar
+from nondeterministic_finite_automata import NondeterministicFiniteAutomata, reverse_edge
 from finite_automata import FiniteAutomata
 from finite_automata_node import CharTransition, FiniteAutomataNode, EpsilonTransition, Transition
 
@@ -10,11 +10,11 @@ class DeterminsticFiniteAutomata(FiniteAutomata):
         super().__init__(start_node)
 
     @classmethod
-    def from_string(cls, regex: str) -> Self:
+    def from_string(cls, regex: str, minimize: bool=False) -> Self:
         return cls.from_nfa(NondeterministicFiniteAutomata.from_string(regex))
 
     @classmethod
-    def from_nfa(cls, nfa: NondeterministicFiniteAutomata) -> Self:
+    def from_nfa(cls, nfa: NondeterministicFiniteAutomata,) -> Self:
         return NFA_to_DFA(nfa)
 
     def match_first(self, s: str) -> Optional[str]:
@@ -103,6 +103,22 @@ def NFA_to_DFA(nfa: NondeterministicFiniteAutomata) -> DeterminsticFiniteAutomat
             cur_node.add_edge(cond, nxt_node)
     
     return DeterminsticFiniteAutomata(closure_to_node[start_closure])
+
+
+T = TypeVar("T")
+
+
+# helper class for 2-element tuple
+class Sorted2Tuple:
+
+    def __init__(self, a: T, b: T) -> None:
+        self.tup = (a, b) if id(a) < id(b) else (b, a)
+
+    def __hash__(self) -> int:
+        return hash(self.tup)
+
+    def __eq__(self, other: Self) -> bool:
+        return self.tup == other.tup
 
 
 def test_dfa():
@@ -207,8 +223,10 @@ def test_dfa_7():
     constructed_dfa = DeterminsticFiniteAutomata.from_string("a+")
     n0 = FiniteAutomataNode()
     n1 = FiniteAutomataNode(is_accept=True)
-    n0.add_edge(CharTransition("a"), n1)
-    n1.add_edge(CharTransition("a"), n1)
+    n2 = FiniteAutomataNode(is_accept=True)
+    n0.add_edge(CharTransition("a"), n1)  # {0}
+    n1.add_edge(CharTransition("a"), n2)  # {1, 2, 4, 3}
+    n2.add_edge(CharTransition("a"), n2)  # {5, 4, 3}
     expected_dfa = DeterminsticFiniteAutomata(n0)
     assert hash(constructed_dfa) == hash(expected_dfa)
 
@@ -220,10 +238,10 @@ def test_dfa_8():
     n1 = FiniteAutomataNode()
     n2 = FiniteAutomataNode()
     n3 = FiniteAutomataNode()
-    n4 = FiniteAutomataNode()
-    n5 = FiniteAutomataNode()
-    n6 = FiniteAutomataNode()
-    n7 = FiniteAutomataNode()
+    n4 = FiniteAutomataNode(is_accept=True)
+    n5 = FiniteAutomataNode(is_accept=True)
+    n6 = FiniteAutomataNode(is_accept=True)
+    n7 = FiniteAutomataNode(is_accept=True)
 
     n0.add_edge(CharTransition("a"), n1)
     n1.add_edge(CharTransition("b"), n2)
@@ -282,3 +300,48 @@ def test_dfa_iter_3():
         ("int i = 0; /* initialize index var */", None)
     ):
         assert dfa.match_first(target) == expected
+
+
+def test_dfa_rev_edge_0():
+    n0 = FiniteAutomataNode()
+    n1 = FiniteAutomataNode()
+    n2 = FiniteAutomataNode()
+
+    n0.add_edge(CharTransition("a"), n1)
+    n0.add_edge(CharTransition("b"), n2)
+    n2.add_edge(CharTransition("a"), n1)
+    n2.add_edge(CharTransition("b"), n2)
+
+    fa = DeterminsticFiniteAutomata(n0)
+    constructed_fa_rev = reverse_edge(fa)
+
+    n3 = FiniteAutomataNode()
+    n4 = FiniteAutomataNode()
+    n5 = FiniteAutomataNode()
+
+    n4.add_edge(CharTransition("a"), n3)
+    n4.add_edge(CharTransition("a"), n5)
+    n5.add_edge(CharTransition("b"), n5)
+    n5.add_edge(CharTransition("b"), n3)
+
+    expected_fa_rev = FiniteAutomata(n4)
+    assert hash(constructed_fa_rev) == hash(expected_fa_rev)
+
+
+def test_dfa_rev_edge_1():
+    fa = DeterminsticFiniteAutomata.from_string("a|b*")
+    constructed_fa_rev = reverse_edge(fa)
+
+    n0 = FiniteAutomataNode()
+    n1 = FiniteAutomataNode()
+    n2 = FiniteAutomataNode()
+    n3 = FiniteAutomataNode()
+    n0.add_edge(EpsilonTransition(), n1)
+    n0.add_edge(EpsilonTransition(), n2)
+    n1.add_edge(CharTransition("a"), n3)
+    n2.add_edge(CharTransition("b"), n2)
+    n2.add_edge(CharTransition("b"), n3)
+
+    expected_fa_rev = FiniteAutomata(n0)
+    assert hash(constructed_fa_rev) == hash(expected_fa_rev)
+

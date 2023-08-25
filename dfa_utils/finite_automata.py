@@ -58,6 +58,11 @@ class FiniteAutomata:
         # - back edges must contribute to the result
         # - the order we visit the out coming edges doesn't change results i.e. the hash must use operator with communitativity
         # get edges first, then bfs in reversed order
+        #
+        # NOTE: it turns out to be the problem of graph isomorphism...?
+        # https://www.jmlr.org/papers/volume12/shervashidze11a/shervashidze11a.pdf
+        # Or if there's a way to calc SCC's hash mathematically, then we could convert it into DAG hashing?
+        # SCC's hash might be done by gaussian elimination or something, requires further investigation
         edges: Dict[
             FiniteAutomataNode, List[Tuple[Transition, FiniteAutomataNode]]
         ] = {}
@@ -85,8 +90,9 @@ class FiniteAutomata:
                 rev_edges[nxt_node].append((nxt_cond, cur_node))
 
         second_pass_que: Deque[FiniteAutomataNode] = deque()
+        print(second_pass_que)
         for node, edge in edges.items():
-            if all(visit_order[nxt_node] < visit_order[node] for _, nxt_node in edge):
+            if all(visit_order[nxt_node] <= visit_order[node] for _, nxt_node in edge):
                 second_pass_que.append(
                     node
                 )  # current node is a sink node: no out edge, or all out edges are back edges
@@ -157,3 +163,4 @@ def test_fa_repr():
     fa = FiniteAutomata(n0)
     r = repr(fa)
     assert r.strip() == "0 -a> 1"
+
