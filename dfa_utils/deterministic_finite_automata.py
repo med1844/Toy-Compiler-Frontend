@@ -11,11 +11,19 @@ class DeterminsticFiniteAutomata(FiniteAutomata):
 
     @classmethod
     def from_string(cls, regex: str, minimize: bool=False) -> Self:
-        return cls.from_nfa(NondeterministicFiniteAutomata.from_string(regex))
+        return cls.from_nfa(NondeterministicFiniteAutomata.from_string(regex), minimize)
 
     @classmethod
-    def from_nfa(cls, nfa: NondeterministicFiniteAutomata,) -> Self:
-        return NFA_to_DFA(nfa)
+    def from_nfa(cls, nfa_0: NondeterministicFiniteAutomata, minimize: bool=False) -> Self:
+        # almost-perfect Brzozowski's algorithm
+        if minimize:
+            nfa_0.end_node.is_accept = True  # would be used to determine new start state in reverse_edge
+            rev_nfa = reverse_edge(nfa_0)
+            rev_dfa = NFA_to_DFA(rev_nfa)
+            nfa_1 = reverse_edge(rev_dfa)
+        else:
+            nfa_1 = nfa_0
+        return NFA_to_DFA(nfa_1)
 
     def match_first(self, s: str) -> Optional[str]:
         # TODO this is SO UGLY, think about more elegant implementation
@@ -231,32 +239,42 @@ def test_dfa_7():
     assert hash(constructed_dfa) == hash(expected_dfa)
 
 
-def test_dfa_8():
+def test_min_dfa_0():
     # the result of (a|b)+ could be further simplified by DFA minimization
-    constructed_dfa = DeterminsticFiniteAutomata.from_string("abb(a|b)+")
+    constructed_dfa = DeterminsticFiniteAutomata.from_string("abb(a|b)+", minimize=True)
     n0 = FiniteAutomataNode()
     n1 = FiniteAutomataNode()
     n2 = FiniteAutomataNode()
     n3 = FiniteAutomataNode()
     n4 = FiniteAutomataNode(is_accept=True)
-    n5 = FiniteAutomataNode(is_accept=True)
-    n6 = FiniteAutomataNode(is_accept=True)
-    n7 = FiniteAutomataNode(is_accept=True)
 
     n0.add_edge(CharTransition("a"), n1)
     n1.add_edge(CharTransition("b"), n2)
     n2.add_edge(CharTransition("b"), n3)
     n3.add_edge(CharTransition("a"), n4)
-    n3.add_edge(CharTransition("b"), n5)
-    n4.add_edge(CharTransition("a"), n6)
-    n4.add_edge(CharTransition("b"), n7)
-    n5.add_edge(CharTransition("a"), n6)
-    n5.add_edge(CharTransition("b"), n7)
-    n6.add_edge(CharTransition("a"), n6)
-    n6.add_edge(CharTransition("b"), n7)
-    n7.add_edge(CharTransition("a"), n6)
-    n7.add_edge(CharTransition("b"), n7)
+    n3.add_edge(CharTransition("b"), n4)
+    n4.add_edge(CharTransition("a"), n4)
+    n4.add_edge(CharTransition("b"), n4)
 
+    expected_dfa = DeterminsticFiniteAutomata(n0)
+    assert hash(constructed_dfa) == hash(expected_dfa)
+
+
+def test_min_dfa_1():
+    # NOTE: this is NOT MINIMAL, but almost.
+    # it's caused by manually added start_node that connects to all accept states.
+    # e.g. consider DFA (0) -ab> (1), (1) -ab> (1). The reversed NFA would be
+    # 2 -ϵ> 1, 2 -ϵ> (0), 1 -ab> 1, 1 -ab> (0).
+    # Thus the ϵ-closure would be {2, 1, 0} -ab> {1, 0}, {1, 0} -ab> {1, 0},
+    # which corresponds to n0 & n1 down there.
+    # TODO: Try to find a way to eliminate that redundant node, e.g. remove start_node from closure?
+    constructed_dfa = DeterminsticFiniteAutomata.from_string("((ϵ|a)b*)*", minimize=True)
+    n0 = FiniteAutomataNode(is_accept=True)
+    n1 = FiniteAutomataNode(is_accept=True)
+    n0.add_edge(CharTransition("a"), n1)
+    n0.add_edge(CharTransition("b"), n1)
+    n1.add_edge(CharTransition("a"), n1)
+    n1.add_edge(CharTransition("b"), n1)
     expected_dfa = DeterminsticFiniteAutomata(n0)
     assert hash(constructed_dfa) == hash(expected_dfa)
 
@@ -304,7 +322,7 @@ def test_dfa_iter_3():
 
 def test_dfa_rev_edge_0():
     n0 = FiniteAutomataNode()
-    n1 = FiniteAutomataNode()
+    n1 = FiniteAutomataNode(is_accept=True)
     n2 = FiniteAutomataNode()
 
     n0.add_edge(CharTransition("a"), n1)
@@ -315,7 +333,7 @@ def test_dfa_rev_edge_0():
     fa = DeterminsticFiniteAutomata(n0)
     constructed_fa_rev = reverse_edge(fa)
 
-    n3 = FiniteAutomataNode()
+    n3 = FiniteAutomataNode(is_accept=True)
     n4 = FiniteAutomataNode()
     n5 = FiniteAutomataNode()
 
@@ -332,16 +350,17 @@ def test_dfa_rev_edge_1():
     fa = DeterminsticFiniteAutomata.from_string("a|b*")
     constructed_fa_rev = reverse_edge(fa)
 
-    n0 = FiniteAutomataNode()
+    n0 = FiniteAutomataNode(is_accept=True)
     n1 = FiniteAutomataNode()
     n2 = FiniteAutomataNode()
     n3 = FiniteAutomataNode()
-    n0.add_edge(EpsilonTransition(), n1)
-    n0.add_edge(EpsilonTransition(), n2)
-    n1.add_edge(CharTransition("a"), n3)
+    n1.add_edge(CharTransition("a"), n0)
+    n2.add_edge(CharTransition("b"), n0)
     n2.add_edge(CharTransition("b"), n2)
-    n2.add_edge(CharTransition("b"), n3)
+    n3.add_edge(EpsilonTransition(), n0)
+    n3.add_edge(EpsilonTransition(), n1)
+    n3.add_edge(EpsilonTransition(), n2)
 
-    expected_fa_rev = FiniteAutomata(n0)
+    expected_fa_rev = FiniteAutomata(n3)
     assert hash(constructed_fa_rev) == hash(expected_fa_rev)
 

@@ -1,5 +1,5 @@
 from collections import deque
-from typing import Callable, Deque, Dict, Set, Tuple, List
+from typing import Callable, Deque, Dict, Set, Tuple, List, Self
 from finite_automata_node import (
     CharTransition,
     FiniteAutomataNode,
@@ -53,6 +53,10 @@ class FiniteAutomata:
         dfs(self.start_node, lambda node: buffer.append(format_node(node)), set())
         return "\n".join(buffer)
 
+    def __eq__(self, other: Self) -> bool:
+        # TODO: implement a graph isomorphism algorithm to compare structure identity, e.g. Weisfeiler-Lehman Kernel
+        raise NotImplementedError()
+
     def __hash__(self) -> int:
         # requirements:
         # - back edges must contribute to the result
@@ -90,9 +94,8 @@ class FiniteAutomata:
                 rev_edges[nxt_node].append((nxt_cond, cur_node))
 
         second_pass_que: Deque[FiniteAutomataNode] = deque()
-        print(second_pass_que)
         for node, edge in edges.items():
-            if all(visit_order[nxt_node] <= visit_order[node] for _, nxt_node in edge):
+            if node.is_accept and all(visit_order[nxt_node] <= visit_order[node] for _, nxt_node in edge):
                 second_pass_que.append(
                     node
                 )  # current node is a sink node: no out edge, or all out edges are back edges
@@ -163,4 +166,3 @@ def test_fa_repr():
     fa = FiniteAutomata(n0)
     r = repr(fa)
     assert r.strip() == "0 -a> 1"
-

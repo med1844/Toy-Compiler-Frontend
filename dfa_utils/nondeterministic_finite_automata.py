@@ -234,6 +234,7 @@ def parse(r: Deque[str], regex_operation: RegexOperation):
 # very similar to FA's hash function, but I have no idea how to reuse code that's complicated like this
 def reverse_edge(fa: FiniteAutomata) -> NondeterministicFiniteAutomata:
     # create a new FiniteAutomata with all edges reversed.
+    accept_states: Set[FiniteAutomataNode] = set()
     edges: Dict[
         FiniteAutomataNode, List[Tuple[Transition, FiniteAutomataNode]]
     ] = {}
@@ -246,6 +247,8 @@ def reverse_edge(fa: FiniteAutomata) -> NondeterministicFiniteAutomata:
         cur_node = first_pass_que.popleft()
         if cur_node in edges:
             continue
+        if cur_node.is_accept:
+            accept_states.add(cur_node)
         edges[cur_node] = cur_node.successors
         visit_order[cur_node] = counter
         counter += 1
@@ -253,25 +256,21 @@ def reverse_edge(fa: FiniteAutomata) -> NondeterministicFiniteAutomata:
             if nxt_node not in edges:
                 first_pass_que.append(nxt_node)
 
-    rev_start_nodes: Set[FiniteAutomataNode] = set()
-    for node, edge in edges.items():
-        if all(visit_order[nxt_node] <= visit_order[node] for _, nxt_node in edge):
-            rev_start_nodes.add(
-                node
-            )  # current node is a sink node: no out edge, or all out edges are back edges
-
     # from old nodes to new nodes in the new edge reversed NFA
     node_map: Dict[FiniteAutomataNode, FiniteAutomataNode] = {old_node: FiniteAutomataNode() for old_node in edges.keys()}
     for src_node, successors in edges.items():
         for cond, nxt_node in successors:
             node_map[nxt_node].add_edge(cond, node_map[src_node])
 
-    if len(rev_start_nodes) > 1:
+    # start_nodes would be all accept states
+    if len(accept_states) > 1:
         rev_start_node = FiniteAutomataNode()
-        for r in rev_start_nodes:
+        for r in accept_states:
             rev_start_node.add_edge(EpsilonTransition(), node_map[r])
     else:
-        rev_start_node = node_map[rev_start_nodes.pop()]
+        rev_start_node = node_map[accept_states.pop()]
+
+    node_map[fa.start_node].is_accept = True
 
     return NondeterministicFiniteAutomata(rev_start_node, node_map[fa.start_node])
 
