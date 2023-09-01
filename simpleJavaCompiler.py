@@ -10,7 +10,7 @@ import Parser
 import sys
 
 
-typedef = TypeDefinition.load("simpleJava/typedef")
+typedef = TypeDefinition.from_filename("simpleJava/typedef")
 cfg = ContextFreeGrammar.load(typedef, "simpleJava/simpleJavaCFG")
 # action, goto = Parser.genActionGoto(typedef, cfg)
 # action.save('simpleJava/simpleJavaAction')
@@ -391,7 +391,7 @@ def _continue1(flc, brk, semi):
 
 with open("simpleJava/simple.sjava", "r") as f:
     src = f.read()
-tokenList = scanner.parse(typedef, src, ['line_comment', 'block_comment', 'space'])
+tokenList = scanner.parse_by_re(typedef, src, ['line_comment', 'block_comment', 'space'])
 pt = Parser.parse(tokenList, typedef, cfg, action, goto)
 pt.evaluate(par)
 ast = AbstractSyntaxTree(pt.getRoot().node)

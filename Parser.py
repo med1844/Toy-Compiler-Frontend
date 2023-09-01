@@ -1,4 +1,5 @@
 from collections import deque
+from typing import List, Tuple
 from typeDef import TypeDefinition
 from cfg import ContextFreeGrammar
 from action import Action
@@ -366,7 +367,7 @@ def genActionGoto(typedef, cfg, needItemToID=False):
         return action, goto
 
 
-def parse(tokenList, typedef, cfg, action=None, goto=None, needLog=False):
+def parse(tokenList: List[Tuple[int, str]], typedef, cfg, action=None, goto=None, needLog=False):
     if action is None or goto is None:
         action, goto = genActionGoto(typedef, cfg)
     
@@ -376,7 +377,7 @@ def parse(tokenList, typedef, cfg, action=None, goto=None, needLog=False):
     stateStack, nodeStack = [0], [PTNode(cfg.EOF)]  # PTNode Objects in nodeStack
 
     # lexStr is the lexical string; token type is int.
-    for lexStr, tokenType in tokenList:
+    for tokenType, lexStr in tokenList:
         currentState = stateStack[-1]
         while True:
             if action[currentState][tokenType] is None:
@@ -435,7 +436,7 @@ def parse(tokenList, typedef, cfg, action=None, goto=None, needLog=False):
 
 
 if __name__ == "__main__":
-    typedef = TypeDefinition.load(FOLDER + "typedef")
+    typedef = TypeDefinition.from_filename(FOLDER + "typedef")
     cfg = ContextFreeGrammar.load(typedef, FOLDER + "simpleJavaCFG")
     # action.save(FOLDER + "simpleJavaAction")
     # goto.save(FOLDER + "simpleJavaGoto")
@@ -445,7 +446,7 @@ if __name__ == "__main__":
 
     with open(FOLDER + "test.sjava", "r") as f:
         src = f.read()
-    tokenList = scanner.parse(typedef, src, ['line_comment', 'block_comment', 'space'])
+    tokenList = scanner.parse_by_re(typedef, src, ['line_comment', 'block_comment', 'space'])
     print(tokenList)
     pt = parse(tokenList, typedef, cfg, action, goto)
     print(pt)

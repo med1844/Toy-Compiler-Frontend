@@ -1,3 +1,6 @@
+from typing import Optional, Dict, List, Tuple, Self
+
+
 class TypeDefinition:
 
     r"""
@@ -16,70 +19,68 @@ class TypeDefinition:
     """
 
     @staticmethod
-    def load(fileName):
+    def from_filename(filename: str):
         """
         Load type definition from given file.
         """
-        with open(fileName, "r") as f:
-            src = f.read()
-        return TypeDefinition.loadFromString(src)
+        with open(filename, "r") as f:
+            src = f.read().strip()
+        return TypeDefinition.from_string(src)
     
-    @staticmethod
-    def loadFromString(string):
+    @classmethod
+    def from_string(cls, string: str) -> Self:
         """
         Load type definition from given string.
         """
-        td = TypeDefinition()
+        td = cls()
         for line in string.split('\n'):
-            a, b, *rest = line.split()
+            a, b, *rest = line.strip().split(' ')
             assert len(rest) <= 1
-            td.addDefinition(a, b, *rest)
+            td.add_definition(a, b, *rest)
         return td
 
     def __init__(self):
-        self.__d = {}  # map name to RE and displayName
-        self.__toInt = {}  # map name to integer
-        self.__toName = {}  # map integer to name
-        self.__displayNameToInt = {}  # map display name to integer
-        self.__toDisplayName = {}
+        self.regex: List[Tuple[str, str, Optional[str]]] = []
+        self.__name_to_id = {}  # map name to integer id
+        self.__display_name_to_id = {}  # map display name to integer
         self.re = None
-    
+
     def __str__(self):
-        return str(self.__d) + "\n" + str(self.__toInt)
+        return str(self.regex) + "\n" + str(self.__name_to_id)
     
-    def addDefinition(self, name, expression, displayName=None):
-        self.__d[name] = (expression, displayName)
+    def add_definition(self, name: str, expression: str, displayName: Optional[str]=None):
+        self.regex.append((name, expression, displayName))
 
         # in order to take less memory and have faster process speed, 
         # map string to int.
-        if name not in self.__toInt:
-            self.__toInt[name] = len(self.__toInt)
-            self.__toName[len(self.__toInt) - 1] = name
+        if name not in self.__name_to_id:
+            cur_id = len(self.__name_to_id)
+            self.__name_to_id[name] = cur_id
             if displayName is not None:
-                self.__displayNameToInt[displayName] = \
-                    len(self.__toInt) - 1
-                self.__toDisplayName[len(self.__toInt) - 1] = \
-                    displayName
+                self.__display_name_to_id[displayName] = cur_id
     
-    def getRE(self):
+    def get_re_compatible_regex(self):
         if self.re is None:
-            self.re = '|'.join('(?P<%s>%s)' % (k, v[0])
-                               for k, v in self.__d.items())
+            self.re = '|'.join('(?P<%s>%s)' % (k, v)
+                               for (k, v, _) in self.regex)
         return self.re
 
-    def getID(self, name):
-        assert name in self.__toInt
-        return self.__toInt[name]
+    def get_name_n_regex(self):
+        return self.regex
+
+    def get_id_by_name(self, name: str) -> int:
+        assert name in self.__name_to_id
+        return self.__name_to_id[name]
     
-    def getIDByDisplayName(self, displayName):
-        assert displayName in self.__displayNameToInt
-        return self.__displayNameToInt[displayName]
+    def get_id_by_display_name(self, display_name: str) -> int:
+        assert display_name in self.__display_name_to_id
+        return self.__display_name_to_id[display_name]
     
-    def getName(self, id_):
-        assert id_ in self.__toName
-        return self.__toName[id_]
+    def get_name_by_id(self, id_: int) -> str:
+        return self.regex[id_][0]
     
-    def getDisplayName(self, id_):
-        if id_ not in self.__toDisplayName:
-            return ""
-        return self.__toDisplayName[id_]
+    def get_display_name_by_id(self, id_) -> str:
+        res = self.regex[id_][-1]
+        if res is None:
+            res = ""
+        return res

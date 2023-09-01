@@ -60,12 +60,12 @@ class ContextFreeGrammar:
 
         for i, (nonTerminal, symbols) in enumerate(temp):
             symbols = tuple("" if sym == "''"
-                            else typeDef.getIDByDisplayName(sym) if sym not in nonTerminals
+                            else typeDef.get_id_by_display_name(sym) if sym not in nonTerminals
                             else sym
                             for sym in symbols)
             grammarToID[(nonTerminal, symbols)] = i
 
-        terminals = {typeDef.getIDByDisplayName(_)
+        terminals = {typeDef.get_id_by_display_name(_)
                      for _ in allSymbol - nonTerminals if _ != "''"}
 
         return ContextFreeGrammar(typeDef, terminals, nonTerminals,
@@ -180,7 +180,7 @@ class ContextFreeGrammar:
         
 
 if __name__ == "__main__":
-    typedef = TypeDefinition.load("simpleJava/typedef")
+    typedef = TypeDefinition.from_filename("simpleJava/typedef")
     cfg = ContextFreeGrammar.load(typedef, "simpleJava/CFG")
     print(cfg.typeDef)
     print(cfg.terminals)

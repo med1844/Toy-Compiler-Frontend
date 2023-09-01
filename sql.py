@@ -7,10 +7,10 @@ import scanner
 import Parser
 
 
-typedef = TypeDefinition.load("simpleSQL/sqltypedef")
+typedef = TypeDefinition.from_filename("simpleSQL/sqltypedef")
 cfg = ContextFreeGrammar.load(typedef, "simpleSQL/SQL")
 action, goto = Parser.genActionGoto(typedef, cfg)
 
-tokenList = scanner.parse(typedef, input())
+tokenList = scanner.parse_by_re(typedef, input())
 pt = Parser.parse(tokenList, typedef, cfg, action, goto)
 print(pt)

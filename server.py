@@ -22,7 +22,7 @@ def index():
 @app.route('/generateLR', methods=['POST'])
 def generate():
     rawCFG = request.form['CFG']
-    typedef = TypeDefinition.load("simpleJava/typedef")
+    typedef = TypeDefinition.from_filename("simpleJava/typedef")
     cfg = ContextFreeGrammar.loadFromString(typedef, rawCFG)
     action, goto, rawItemToID = Parser.genActionGoto(typedef, cfg, needItemToID=True)
     terminals, nonTerminals = action.terminals(), goto.nonTerminals()
@@ -42,7 +42,7 @@ def generate():
     
     cfgForFirst = cfg.removeLeftRecursion() if cfg.isLeftRecursive() else cfg
     firstDict = Parser.first(cfgForFirst)
-    firstSet = {k: ', '.join([typedef.getDisplayName(sym) for sym in v])
+    firstSet = {k: ', '.join([typedef.get_display_name_by_id(sym) for sym in v])
                 for k, v in firstDict.items()}
 
     return render_template(
@@ -55,7 +55,7 @@ def generate():
 @app.route('/parse', methods=['POST', 'GET'])
 def parse():
     string = request.form['string']
-    tokenList = scanner.parse(app.typedef, string, ["space"])
+    tokenList = scanner.parse_by_re(app.typedef, string, ["space"])
     
     pt, log = Parser.parse(tokenList, app.typedef, app.cfg, app.action, app.goto, needLog=True)
     return {

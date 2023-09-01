@@ -3,7 +3,7 @@ from typeDef import TypeDefinition
 import Parser
 
 
-typedef = TypeDefinition.load("simpleCalc/typedef")
+typedef = TypeDefinition.from_filename("simpleCalc/typedef")
 cfg = ContextFreeGrammar.load(typedef, "simpleCalc/CFG4")
 action, goto = Parser.genActionGoto(typedef, cfg)
 action.save('simpleCalc/calc_action')

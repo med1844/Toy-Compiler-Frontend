@@ -1,8 +1,8 @@
 from collections import deque
 from typing import Deque, Optional, Set, Dict, Self, Iterable, List, Tuple, TypeVar
-from nondeterministic_finite_automata import NondeterministicFiniteAutomata, reverse_edge
-from finite_automata import FiniteAutomata
-from finite_automata_node import CharTransition, FiniteAutomataNode, EpsilonTransition, Transition
+from .nondeterministic_finite_automata import NondeterministicFiniteAutomata, reverse_edge
+from .finite_automata import FiniteAutomata
+from .finite_automata_node import CharTransition, FiniteAutomataNode, EpsilonTransition, Transition
 
 
 class DeterminsticFiniteAutomata(FiniteAutomata):
@@ -25,7 +25,7 @@ class DeterminsticFiniteAutomata(FiniteAutomata):
             nfa_1 = nfa_0
         return NFA_to_DFA(nfa_1)
 
-    def match_first(self, s: str) -> Optional[str]:
+    def match_first(self, s: Iterable[str]) -> str:
         # TODO this is SO UGLY, think about more elegant implementation
         cur_node = self.start_node
         buffer = []
@@ -48,7 +48,7 @@ class DeterminsticFiniteAutomata(FiniteAutomata):
             buffer.clear()
         if accepted_buffer:
             return "".join(accepted_buffer)
-        return None
+        return ""
 
 
 class FANodeClosure:

@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import TypeVar, Deque, Dict, Self, Set, List, Tuple
-from finite_automata import FiniteAutomata
-from finite_automata_node import FiniteAutomataNode, EpsilonTransition, CharTransition, Transition
+from .finite_automata import FiniteAutomata
+from .finite_automata_node import FiniteAutomataNode, EpsilonTransition, CharTransition, Transition
 from collections import deque
 from abc import ABC
 
@@ -46,12 +46,17 @@ class RegexOperation(ABC):
         raise NotImplementedError()
 
     @staticmethod
-    def make_range_nfa(*ranges: range) -> T:
+    def make_range_nfa(*ranges: range, complementary=False) -> T:
         raise NotImplementedError()
 
     @staticmethod
     def make_dot_nfa() -> T:
         # TODO I actually start feeling this super dirty... is there any good way to refactor this
+        raise NotImplementedError()
+
+    @staticmethod
+    def make_inverse_nfa(s: str) -> T:
+        # inverse only one char? or inverse range?
         raise NotImplementedError()
 
     @classmethod
@@ -82,13 +87,25 @@ class StringRegexOperation(RegexOperation):
         return s
 
     @classmethod
-    def make_range_nfa(cls, *ranges: range) -> str:
+    def make_range_nfa(cls, *ranges: range, complementary=False) -> str:
+        if complementary:
+            compl_ranges: List[range] = []
+            start = 0x20
+            for r in ranges:
+                compl_ranges.append(range(start, r.start))
+                start = r.stop
+            compl_ranges.append(range(start, 0x7f))
+            ranges = tuple(compl_ranges)
         return cls.or_(*(cls.make_nfa(chr(i)) for r in ranges for i in r))
 
     @classmethod
     def make_dot_nfa(cls) -> str:
         # only match printable ascii characters, i.e. no unicode support
-        return cls.make_range_nfa(range(0x20, 0x7f))  # 0x7f is not printable thus doesn't include it
+        return cls.make_inverse_nfa("\n")  # 0x7f is not printable thus doesn't include it
+
+    @classmethod
+    def make_inverse_nfa(cls, s: str) -> str:
+        return cls.make_range_nfa(range(0x20, ord(s)), range(ord(s) + 1, 0x7f))
 
     @classmethod
     def kleene_star(cls, r: str) -> str:
@@ -122,13 +139,25 @@ class NFANodeRegexOperation(RegexOperation):
         return NondeterministicFiniteAutomata(s, e)
 
     @classmethod
-    def make_range_nfa(cls, *ranges: range) -> NondeterministicFiniteAutomata:
+    def make_range_nfa(cls, *ranges: range, complementary=False) -> NondeterministicFiniteAutomata:
+        if complementary:
+            compl_ranges: List[range] = []
+            start = 0x20
+            for r in ranges:
+                compl_ranges.append(range(start, r.start))
+                start = r.stop
+            compl_ranges.append(range(start, 0x7f))
+            ranges = tuple(compl_ranges)
         return cls.or_(*(cls.make_nfa(chr(i)) for r in ranges for i in r))
 
     @classmethod
     def make_dot_nfa(cls) -> NondeterministicFiniteAutomata:
         # only match printable ascii characters, i.e. no unicode support
-        return cls.make_range_nfa(range(0x20, 0x7f))  # 0x7f is not printable thus doesn't include it
+        return cls.make_inverse_nfa("\n")  # 0x7f is not printable thus doesn't include it
+
+    @classmethod
+    def make_inverse_nfa(cls, s: str) -> NondeterministicFiniteAutomata:
+        return cls.make_range_nfa(range(0x20, ord(s)), range(ord(s) + 1, 0x7f))
 
     @classmethod
     def kleene_star(cls, r: NondeterministicFiniteAutomata) -> NondeterministicFiniteAutomata:
@@ -193,6 +222,7 @@ def parse(r: Deque[str], regex_operation: RegexOperation):
             l = regex_operation.concat(l, c)
         return l
 
+
     while r:
         s = r.popleft()
         if s == "(":
@@ -208,16 +238,26 @@ def parse(r: Deque[str], regex_operation: RegexOperation):
         elif s == "|":
             or_ops.append(reduce_concat())
         elif s == "[":
+            complementary = False
+            if r[0] == "^":
+                complementary = True
+                r.popleft()
             ranges = []
             while True:
-                s = r.popleft()
-                _ = r.popleft()
-                e = r.popleft()
-                ranges.append(range(ord(s), ord(e) + 1))
+                if len(r) >= 2 and r[0] != "\\" and r[0] != "]" and r[1] == "-":
+                    s = r.popleft()
+                    _ = r.popleft()
+                    e = r.popleft()
+                    ranges.append(range(ord(s), ord(e) + 1))
+                else:
+                    if r[0] == "\\":
+                        r.popleft()
+                    s = r.popleft()
+                    ranges.append(range(ord(s), ord(s) + 1))
                 if r[0] == "]":
                     r.popleft()
                     break
-            ops.append(regex_operation.make_range_nfa(*ranges))
+            ops.append(regex_operation.make_range_nfa(*ranges, complementary=complementary))
         elif s == ".":
             ops.append(regex_operation.make_dot_nfa())
         elif len(s) == 1:
@@ -683,6 +723,18 @@ def test_parsing_nfa_12():
 def test_parsing_nfa_13():
     constructed_nfa = NondeterministicFiniteAutomata.from_string("[0-3]+")
     expected_nfa = NondeterministicFiniteAutomata.from_string("(0|1|2|3)+")
+    assert hash(constructed_nfa) == hash(expected_nfa)
+
+
+def test_parsing_nfa_14():
+    constructed_nfa = NondeterministicFiniteAutomata.from_string("'[^b]*'")
+    expected_nfa = NondeterministicFiniteAutomata.from_string("'[ -ac-~]*'")
+    assert hash(constructed_nfa) == hash(expected_nfa)
+
+
+def test_parsing_nfa_15():
+    constructed_nfa = NondeterministicFiniteAutomata.from_string(r"'[^\']*'")
+    expected_nfa = NondeterministicFiniteAutomata.from_string(r"'[ -&(-~]*'")
     assert hash(constructed_nfa) == hash(expected_nfa)
 
 

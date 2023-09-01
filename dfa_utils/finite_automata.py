@@ -1,6 +1,6 @@
 from collections import deque
 from typing import Callable, Deque, Dict, Set, Tuple, List, Self
-from finite_automata_node import (
+from .finite_automata_node import (
     CharTransition,
     FiniteAutomataNode,
     Transition,
