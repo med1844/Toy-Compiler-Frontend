@@ -6,13 +6,13 @@ from goto import Goto
 from Ast import ASTNode, AbstractSyntaxTree, ASTActionRegister
 from parseTree import ParseTreeActionRegister
 import scanner
-import Parser
+import parser
 import sys
 
 
 typedef = TypeDefinition.from_filename("simpleJava/typedef")
 cfg = ContextFreeGrammar.load(typedef, "simpleJava/simpleJavaCFG")
-# action, goto = Parser.genActionGoto(typedef, cfg)
+# action, goto = parser.genActionGoto(typedef, cfg)
 # action.save('simpleJava/simpleJavaAction')
 # goto.save('simpleJava/simpleJavaGoto')
 # exit()
@@ -392,7 +392,7 @@ def _continue1(flc, brk, semi):
 with open("simpleJava/simple.sjava", "r") as f:
     src = f.read()
 tokenList = scanner.parse_by_re(typedef, src, ['line_comment', 'block_comment', 'space'])
-pt = Parser.parse(tokenList, typedef, cfg, action, goto)
+pt = parser.parse(tokenList, typedef, cfg, action, goto)
 pt.evaluate(par)
 ast = AbstractSyntaxTree(pt.getRoot().node)
 

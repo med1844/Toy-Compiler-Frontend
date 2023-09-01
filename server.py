@@ -5,7 +5,7 @@ Back-end for the visualization of the compile process
 from flask import render_template, Flask, request, make_response, redirect, url_for
 from cfg import ContextFreeGrammar
 from typeDef import TypeDefinition
-import Parser
+import parser
 import scanner
 import os
 app = Flask(__name__)
@@ -24,7 +24,7 @@ def generate():
     rawCFG = request.form['CFG']
     typedef = TypeDefinition.from_filename("simpleJava/typedef")
     cfg = ContextFreeGrammar.loadFromString(typedef, rawCFG)
-    action, goto, rawItemToID = Parser.genActionGoto(typedef, cfg, needItemToID=True)
+    action, goto, rawItemToID = parser.genActionGoto(typedef, cfg, needItemToID=True)
     terminals, nonTerminals = action.terminals(), goto.nonTerminals()
     symbols = terminals + nonTerminals
     result = [["state"] + symbols]
@@ -38,10 +38,10 @@ def generate():
 
     itemToID = {}
     for k, v in rawItemToID.items():
-        itemToID[Parser.toStr(typedef, k)] = v
+        itemToID[parser.toStr(typedef, k)] = v
     
     cfgForFirst = cfg.removeLeftRecursion() if cfg.isLeftRecursive() else cfg
-    firstDict = Parser.first(cfgForFirst)
+    firstDict = parser.first(cfgForFirst)
     firstSet = {k: ', '.join([typedef.get_display_name_by_id(sym) for sym in v])
                 for k, v in firstDict.items()}
 
@@ -57,7 +57,7 @@ def parse():
     string = request.form['string']
     tokenList = scanner.parse_by_re(app.typedef, string, ["space"])
     
-    pt, log = Parser.parse(tokenList, app.typedef, app.cfg, app.action, app.goto, needLog=True)
+    pt, log = parser.parse(tokenList, app.typedef, app.cfg, app.action, app.goto, needLog=True)
     return {
         'pt': str(pt),
         'log': log

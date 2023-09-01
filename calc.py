@@ -4,7 +4,7 @@ from action import Action
 from goto import Goto
 from parseTree import ParseTreeActionRegister
 import scanner
-import Parser
+import parser
 
 
 global d
@@ -12,7 +12,7 @@ d = {}
 
 typedef = TypeDefinition.from_filename("simpleCalc/typedef")
 cfg = ContextFreeGrammar.load(typedef, "simpleCalc/CFG4")
-action, goto = Parser.genActionGoto(typedef, cfg)
+action, goto = parser.genActionGoto(typedef, cfg)
 action.save('simpleCalc/calc_action')
 goto.save('simpleCalc/calc_goto')
 exit()
@@ -83,7 +83,7 @@ while True:
     try:
         inputString = input(">>> ")
         tokenList = scanner.parse_by_re(typedef, inputString)
-        pt = Parser.parse(tokenList, typedef, cfg, action, goto)
+        pt = parser.parse(tokenList, typedef, cfg, action, goto)
         pt.evaluate(ar)
 
     except EOFError:

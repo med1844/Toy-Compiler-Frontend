@@ -11,12 +11,12 @@ On top of these, I implemented a compiler that translate an experimental languag
 1. write TypeDefinition files that define matching rules of different type of tokens.
 2. write CFG files that define the Context Free Grammar you want to use.
 3. Load them.
-4. use `Parser.genActionGoto` to generate Action & Goto table.
+4. use `parser.genActionGoto` to generate Action & Goto table.
 
 ```python
 typedef = TypeDefinition.load("TYPEDEF")
 cfg = ContextFreeGrammar.load(typedef, "CFG")
-action, goto = Parser.genActionGoto(typedef, cfg)
+action, goto = parser.genActionGoto(typedef, cfg)
 action.save('ACTION')
 goto.save('GOTO')
 ```
@@ -27,7 +27,7 @@ The format of typeDef and CFG files are described in `typeDef.py` and `cfg.py`, 
 
 1. read input.
 2. use `scanner.parse` to split tokens.
-3. use `Parser.parse` to get `ParseTree`.
+3. use `parser.parse` to get `ParseTree`.
 
 ```python
 action = Action.load(cfg, "ACTION")
@@ -36,7 +36,7 @@ goto = Goto.load(cfg, "GOTO")
 with open("SOURCE", "r") as f:
     src = f.read()
 tokenList = scanner.parse(typedef, src, ['line_comment', 'block_comment', 'space'])
-pt = Parser.parse(tokenList, typedef, cfg, action, goto)
+pt = parser.parse(tokenList, typedef, cfg, action, goto)
 ```
 
 ### Use ParseTree to evaluate attribute grammars
