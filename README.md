@@ -165,7 +165,7 @@ Since this is just a compiler test, I decided not to use tools that parse comman
 
 ## Planned improvements
 
-- [ ] Rewrite lexer using DFA instead of NFA-based `re`
+- [x] Rewrite lexer using DFA instead of NFA-based `re`
   - [x] Impl regex parser that generates NFA
     - [x] `*`
     - [x] `|`
@@ -180,7 +180,8 @@ Since this is just a compiler test, I decided not to use tools that parse comman
   - [x] Impl minimize DFA algo
     - [x] Add tests
   - [x] Write a hash function that encodes the structural information of arbitrary finite automata for auto tests
-  - [ ] Implement a lexer that's based on DFA
+  - [x] Implement a lexer that's based on DFA
+  - [ ] Add FA serialization & de-serialization
 - [ ] Migrate to typed python
 - [ ] Make parser a module
 - [ ] Optimize parser memory usage by eliminating building actual parse tree
@@ -189,4 +190,7 @@ Since this is just a compiler test, I decided not to use tools that parse comman
 - [ ] Move `simpleSQL` and `simpleJava` to other repositories
   - [ ] For `simpleSQL`, implement an operator-based sql engine in a separate project
   - [ ] For ``simpleJava, implement IR passes & maybe generate LLVM IRs in a separate project
+    - [ ] control flow graph generation?
+    - [ ] SSA generation?
+    - [ ] Partial redundancy elimination?
 - [ ] Add CLI support for generating a standalone front end parser (.py) given type definition, CFG definition, and tree action.
