@@ -23,7 +23,7 @@ def index():
 def generate():
     rawCFG = request.form['CFG']
     typedef = TypeDefinition.from_filename("simpleJava/typedef")
-    cfg = ContextFreeGrammar.loadFromString(typedef, rawCFG)
+    cfg = ContextFreeGrammar.from_string(typedef, rawCFG)
     action, goto, rawItemToID = parser.genActionGoto(typedef, cfg, needItemToID=True)
     terminals, nonTerminals = action.terminals(), goto.nonTerminals()
     symbols = terminals + nonTerminals
@@ -40,7 +40,7 @@ def generate():
     for k, v in rawItemToID.items():
         itemToID[parser.toStr(typedef, k)] = v
     
-    cfgForFirst = cfg.removeLeftRecursion() if cfg.isLeftRecursive() else cfg
+    cfgForFirst = cfg.remove_left_recursion() if cfg.is_left_recursive() else cfg
     firstDict = parser.first(cfgForFirst)
     firstSet = {k: ', '.join([typedef.get_display_name_by_id(sym) for sym in v])
                 for k, v in firstDict.items()}

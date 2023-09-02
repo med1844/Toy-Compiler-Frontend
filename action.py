@@ -1,10 +1,12 @@
 EMPTY = ""
 import json
 
+from cfg import ContextFreeGrammar
+
 
 class Action:
 
-    def __init__(self, cfg, stateCount, table=None):
+    def __init__(self, cfg: ContextFreeGrammar, stateCount, table=None):
         self.cfg = cfg
         self.stateCount = stateCount
         self.table = [{k: None for k in self.cfg.terminals | {self.cfg.EOF}} for _ in range(self.stateCount)] if table is None else table

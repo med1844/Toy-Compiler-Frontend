@@ -1,18 +1,20 @@
 import json
 
+from cfg import ContextFreeGrammar
+
 
 class Goto:
 
-    def __init__(self, cfg, stateCount, table=None):
+    def __init__(self, cfg: ContextFreeGrammar, stateCount, table=None):
         self.cfg = cfg
         self.stateCount = stateCount
-        self.table = [{k: None for k in self.cfg.nonTerminals} for _ in range(self.stateCount)] if table is None else table
+        self.table = [{k: None for k in self.cfg.non_terminals} for _ in range(self.stateCount)] if table is None else table
     
     def __getitem__(self, item):
         return self.table[item]
     
     def __str__(self):
-        processedNonTerminals = sorted(list(self.cfg.nonTerminals))
+        processedNonTerminals = sorted(list(self.cfg.non_terminals))
         fmt = [len(str(_)) for _ in processedNonTerminals]
         for i in range(self.stateCount):
             for j, k in enumerate(processedNonTerminals):
@@ -32,13 +34,13 @@ class Goto:
         return self.stateCount
     
     def nonTerminals(self):
-        return sorted(list(self.cfg.nonTerminals))
+        return sorted(list(self.cfg.non_terminals))
 
     def getHead(self):
-        return ["state"] + [str(k) for k in sorted(list(self.cfg.nonTerminals))]
+        return ["state"] + [str(k) for k in sorted(list(self.cfg.non_terminals))]
     
     def getRow(self, i):
-        return [str(i)] + [str(self.table[i][k]) for k in sorted(list(self.cfg.nonTerminals))]
+        return [str(i)] + [str(self.table[i][k]) for k in sorted(list(self.cfg.non_terminals))]
     
     def save(self, fileName):
         with open(fileName, "w") as f:

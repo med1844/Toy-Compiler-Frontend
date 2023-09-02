@@ -28,7 +28,7 @@ def firstOfSym(result, cfg, sym, firstDict=None) -> bool:
     return hasEmpty
 
 
-def firstOfSeq(result, cfg, sequence, firstDict=None) -> bool:
+def firstOfSeq(result, cfg: ContextFreeGrammar, sequence, firstDict=None) -> bool:
     """
     Calculate the first set of given sequence and cfg.
 
@@ -39,10 +39,10 @@ def firstOfSeq(result, cfg, sequence, firstDict=None) -> bool:
     hasNonTerminal = False
     allNonTerminalHasEmpty = True
     for sym in sequence:
-        if cfg.isTerminal(sym) or cfg.isEOF(sym):
+        if cfg.is_terminal(sym) or cfg.is_EOF(sym):
             result.add(sym)
             break
-        elif cfg.isNonTerminal(sym):
+        elif cfg.is_non_terminal(sym):
             hasNonTerminal = True
             if firstDict is not None:
                 result |= firstDict[sym]
@@ -61,16 +61,16 @@ def firstOfSeq(result, cfg, sequence, firstDict=None) -> bool:
     return hasEmpty
 
 
-def updNonTerminalFirst(result, cfg, non) -> bool:
+def updNonTerminalFirst(result, cfg: ContextFreeGrammar, non) -> bool:
     ntHasEmpty = False
-    for id_ in cfg.getProductions(non):
+    for id_ in cfg.get_productions(non):
         hasNonTerminal = False
         allNonTerminalHasEmpty = True
-        for sym in cfg.getProduction(id_)[1]:
-            if cfg.isTerminal(sym):
+        for sym in cfg.get_production(id_)[1]:
+            if cfg.is_terminal(sym):
                 result[non].add(sym)
                 break
-            elif cfg.isNonTerminal(sym):
+            elif cfg.is_non_terminal(sym):
                 hasNonTerminal = True
                 allNonTerminalHasEmpty &= updNonTerminalFirst(result, cfg, sym)
                 result[non] |= result[sym]
@@ -87,12 +87,12 @@ def updNonTerminalFirst(result, cfg, non) -> bool:
     return ntHasEmpty
 
 
-def first(cfg) -> dict:
+def first(cfg: ContextFreeGrammar) -> dict:
     """
     Calculate the first set of a given cfg
     """
-    result = {k: set() for k in cfg.nonTerminals}
-    for non, _ in cfg.nonTerminalToProdIDs.items():
+    result = {k: set() for k in cfg.non_terminals}
+    for non, _ in cfg.non_terminal_to_prod_id.items():
         if not result[non]:
             updNonTerminalFirst(result, cfg, non)
     return result
@@ -105,8 +105,8 @@ class LRItem:
     lookForward is a set, containing a set of id of terminals.
     """
 
-    def __init__(self, cfg, productionID, dotPos=0, lookForward=None):
-        self.cfg = cfg
+    def __init__(self, cfg: ContextFreeGrammar, productionID, dotPos=0, lookForward=None):
+        self.cfg: ContextFreeGrammar = cfg
         self.productionID = productionID
         self.dotPos = dotPos
         self.lookForward = lookForward  # WARNING: REFERENCE IS SHARED FOR
@@ -143,13 +143,13 @@ class LRItem:
         return self.productionID < other.productionID
 
     def get(self, offset=0):
-        return self.cfg.get(self.productionID, self.dotPos, offset)
+        return self.cfg.get_symbol_in_prod(self.productionID, self.dotPos, offset)
     
     def gotoNext(self):
         return LRItem(self.cfg, self.productionID, self.dotPos + 1, self.lookForward)
     
     def atEnd(self) -> bool:
-        prod = self.cfg.getProduction(self.productionID)[1]
+        prod = self.cfg.get_production(self.productionID)[1]
         return len(prod) == self.dotPos or prod == ("", )
 
 
@@ -158,7 +158,7 @@ sequenceToFirst = {}
 
 class LRItemSet:
 
-    def __init__(self, cfg):
+    def __init__(self, cfg: ContextFreeGrammar):
         self.cfg = cfg
         self.items = set()
         self.__needRecalculateHash = True  # lazy tag
@@ -217,8 +217,8 @@ class LRItemSet:
 
             curSym = cur.get()  # symbol at current dot position
 
-            if self.cfg.isNonTerminal(curSym):
-                prod = self.cfg.getProduction(cur.productionID)[1][cur.dotPos + 1:]
+            if self.cfg.is_non_terminal(curSym):
+                prod = self.cfg.get_production(cur.productionID)[1][cur.dotPos + 1:]
                 newProds = (prod + (lookForwardSym, ) for lookForwardSym in cur.lookForward)  # precalc to accelerate
 
                 for newProd in newProds:
@@ -227,7 +227,7 @@ class LRItemSet:
                         firstOfSeq(firstSet, self.cfg, newProd, firstDict)
                         sequenceToFirst[newProd] = firstSet
                     firstSet = sequenceToFirst[newProd]
-                    for productionID in self.cfg.getProductions(curSym):
+                    for productionID in self.cfg.get_productions(curSym):
                         newCore = (productionID, 0)
                         if newCore not in record or not firstSet.issubset(record[newCore]):
                             que.append(LRItem(self.cfg, productionID, 0, firstSet))
@@ -294,12 +294,12 @@ def debug(src, step, dst, table, tableName, collisionItem, typedef, IDToItem, cf
     debugDetail(collisionItem, typedef, IDToItem, cfg)
 
 
-def genActionGoto(typedef, cfg, needItemToID=False):
-    cfgForFirst = cfg.removeLeftRecursion() if cfg.isLeftRecursive() else cfg
+def genActionGoto(typedef: TypeDefinition, cfg: ContextFreeGrammar, needItemToID=False):
+    cfgForFirst = cfg.remove_left_recursion() if cfg.is_left_recursive() else cfg
     firstDict = first(cfgForFirst)
 
-    initProdID = cfg.nonTerminalToProdIDs[cfg.startSymbol][0]
-    initItem = LRItem(cfg, initProdID, 0, {"$"})
+    initProdID = cfg.non_terminal_to_prod_id[cfg.start_symbol][0]
+    initItem = LRItem(cfg, initProdID, 0, {-1})
 
     initItemSet = LRItemSet(cfg)
     initItemSet.addItem(initItem)
@@ -338,12 +338,12 @@ def genActionGoto(typedef, cfg, needItemToID=False):
         for step, dst in v:
             # src, step, dst forms a full edge. note that src and dst are int.
             # print("%d -> %d via %r" % (src, dst, step))
-            if cfg.isTerminal(step):
+            if cfg.is_terminal(step):
                 if action[src][step] is not None:
                     debug(src, step, dst, action, "action", (0, dst), typedef, IDToItem, cfg)
                 else:
                     action[src][step] = (0, dst)  # 0 means Shift
-            elif cfg.isNonTerminal(step):
+            elif cfg.is_non_terminal(step):
                 if goto[src][step] is not None:
                     debug(src, step, dst, goto, "goto", dst, typedef, IDToItem, cfg)
                 else:
@@ -367,7 +367,7 @@ def genActionGoto(typedef, cfg, needItemToID=False):
         return action, goto
 
 
-def parse(tokenList: List[Tuple[int, str]], typedef, cfg, action=None, goto=None, needLog=False):
+def parse(tokenList: List[Tuple[int, str]], typedef: TypeDefinition, cfg: ContextFreeGrammar, action=None, goto=None, needLog=False):
     if action is None or goto is None:
         action, goto = genActionGoto(typedef, cfg)
     
@@ -393,7 +393,7 @@ def parse(tokenList: List[Tuple[int, str]], typedef, cfg, action=None, goto=None
                 break
             elif actionType == 1:
                 prodID = nextState
-                nonTerminal, sequence = cfg.getProduction(prodID)
+                nonTerminal, sequence = cfg.get_production(prodID)
                 if needLog:
                     log.append(
                         (

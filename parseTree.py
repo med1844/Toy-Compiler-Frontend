@@ -1,3 +1,4 @@
+from cfg import ContextFreeGrammar
 from tree import TreeNode, Tree
 
 
@@ -29,7 +30,7 @@ class PTNode(TreeNode):
 
 class ParseTreeActionRegister:
 
-    def __init__(self, cfg):
+    def __init__(self, cfg: ContextFreeGrammar):
         self.__productionToAction = {}
         self.__cfg = cfg
 
@@ -44,7 +45,7 @@ class ParseTreeActionRegister:
         def decorate(function):
             for prod in productions:
                 self.__productionToAction.\
-                    setdefault(self.__cfg.rawGrammarToID[prod], {})\
+                    setdefault(self.__cfg.raw_grammar_to_id[prod], {})\
                         [index] = function
             return function
         return decorate

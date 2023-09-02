@@ -13,9 +13,9 @@ d = {}
 typedef = TypeDefinition.from_filename("simpleCalc/typedef")
 cfg = ContextFreeGrammar.load(typedef, "simpleCalc/CFG4")
 action, goto = parser.genActionGoto(typedef, cfg)
-action.save('simpleCalc/calc_action')
-goto.save('simpleCalc/calc_goto')
-exit()
+# action.save('simpleCalc/calc_action')
+# goto.save('simpleCalc/calc_goto')
+# exit()
 ar = ParseTreeActionRegister(cfg)
 
 @ar.production('Statement -> E', 'Statement -> Assignment')
@@ -76,8 +76,8 @@ def __assign(assi, id_, _, E):
     assi.val = d[id_.getContent()]
 
 
-action = Action.load(cfg, "simpleCalc/calc_action")
-goto = Goto.load(cfg, "simpleCalc/calc_goto")
+# action = Action.load(cfg, "simpleCalc/calc_action")
+# goto = Goto.load(cfg, "simpleCalc/calc_goto")
 
 while True:
     try:
