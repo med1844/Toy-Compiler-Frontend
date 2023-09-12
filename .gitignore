@@ -5,4 +5,4 @@ in
 */__pycache__/*
 *.exe
 *.obj
-
+.venv

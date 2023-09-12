@@ -45,9 +45,8 @@ class CharTransition(Transition):
 
 class FiniteAutomataNode(object):
 
-    def __init__(self, is_accept=False) -> None:
+    def __init__(self) -> None:
         self.successors: List[Tuple[Transition, "FiniteAutomataNode"]] = []
-        self.is_accept = is_accept
 
     def add_edge(self, cond: Transition, other: "FiniteAutomataNode") -> None:
         self.successors.append((cond, other))
