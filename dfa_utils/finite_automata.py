@@ -64,7 +64,6 @@ class FiniteAutomata:
                 if nxt_node not in visited:
                     dfs(nxt_node, action, visited)
 
-
         buffer = []
         assign_id_dfs(self.start_node)
         dfs(self.start_node, lambda node: buffer.append(format_node(node)), set())
@@ -188,6 +187,10 @@ class FiniteAutomata:
 
     @classmethod
     def from_string(cls, regex: str, minimize=False) -> Self:
+        # WARNING:
+        # by default, this function would return an NFA.
+        # currently, match_first method only accepts DFA.
+        # so please make sure you passed minimize=True when initialize FA objects, if you want to match something
         nfa = parse(deque(regex), NFANodeRegexOperation())
         assert isinstance(nfa, FiniteAutomata)
         if minimize:
@@ -1051,16 +1054,16 @@ def test_min_dfa_1():
 
 
 def test_dfa_iter_0():
-    dfa = FiniteAutomata.from_string("a*")
+    dfa = FiniteAutomata.from_string("a*", minimize=True)
     for target, expected in (
         ("aabaaabba", "aa"),
-        ("baaaa", None)
+        ("baaaa", "")
     ):
         assert dfa.match_first(target) == expected
 
 
 def test_dfa_iter_1():
-    dfa = FiniteAutomata.from_string("0|(1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)*")
+    dfa = FiniteAutomata.from_string("0|(1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)*", minimize=True)
     for target, expected in (
         ("10872865 168505", "10872865"),
         ("010101", "0"),
@@ -1070,23 +1073,23 @@ def test_dfa_iter_1():
 
 
 def test_dfa_iter_2():
-    dfa = FiniteAutomata.from_string("([a-zA-Z]|_)([a-zA-Z0-9]|_)*")
+    dfa = FiniteAutomata.from_string("([a-zA-Z]|_)([a-zA-Z0-9]|_)*", minimize=True)
     for target, expected in (
         ("FiniteAutomata.from_string('a*')", "FiniteAutomata"),
         ("__init__(self)", "__init__"),
         ("n7.add_edge(CharTransition('b'), n7)", "n7"),
-        ("1 + 2", None)
+        ("1 + 2", "")
     ):
         assert dfa.match_first(target) == expected
 
 
 def test_dfa_iter_3():
-    dfa = FiniteAutomata.from_string(r"/\*.*\*/")
+    dfa = FiniteAutomata.from_string(r"/\*.*\*/", minimize=True)
 
     for target, expected in (
         ("/* ([a-zA-Z]|_)([a-zA-Z0-9]|_)* */", "/* ([a-zA-Z]|_)([a-zA-Z0-9]|_)* */"),
         ("/*comment*/?ok", "/*comment*/"),
-        ("int i = 0; /* initialize index var */", None)
+        ("int i = 0; /* initialize index var */", "")
     ):
         assert dfa.match_first(target) == expected
 

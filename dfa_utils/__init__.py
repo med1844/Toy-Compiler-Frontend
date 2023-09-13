@@ -1,5 +1,3 @@
 from dfa_utils import finite_automata_node
 from dfa_utils import finite_automata
-from dfa_utils import nondeterministic_finite_automata
-from dfa_utils import deterministic_finite_automata
 from dfa_utils import regex_operation
