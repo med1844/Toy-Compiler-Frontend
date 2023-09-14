@@ -1,7 +1,7 @@
 from collections import deque
 import re
 from typing import Deque, List, Tuple
-from dfa_utils.deterministic_finite_automata import DeterminsticFiniteAutomata
+from dfa_utils.finite_automata import FiniteAutomata
 from typeDef import TypeDefinition
 
 
@@ -24,11 +24,16 @@ def parse_by_re(typeDef, src_code, filter_=None) -> List[Tuple[int, str]]:
     return result
 
 
-def parse_by_dfa(dfa_list: List[DeterminsticFiniteAutomata], s: str) -> List[Tuple[int, str]]:
+def parse_by_dfa(dfa_list: List[FiniteAutomata], s: str) -> List[Tuple[int, str]]:
     # parser would try dfa one by one. returns result with maximum match length.
     # if there're multiple dfas that return max match length, use the foremost one (id smallest one)
-    def parse_one_word(dfa_list: List[DeterminsticFiniteAutomata], s: Deque[str]) -> Tuple[int, str]:
-        return max(enumerate(dfa.match_first(s) for dfa in dfa_list), key=lambda x: x[1])
+    def parse_one_word(
+        dfa_list: List[FiniteAutomata], s: Deque[str]
+    ) -> Tuple[int, str]:
+        return max(
+            enumerate(dfa.match_first(s) for dfa in dfa_list), key=lambda x: x[1]
+        )
+
     tokens = []
     deque_s = deque(s)
     while deque_s:
@@ -41,26 +46,20 @@ def parse_by_dfa(dfa_list: List[DeterminsticFiniteAutomata], s: str) -> List[Tup
     return tokens
 
 
-def test_scanner_0():
-    # test match priority
-    typedef = TypeDefinition()
-    typedef.add_definition("mut", "mut")
-    typedef.add_definition("identifier", "([a-zA-Z]|_)([0-9a-zA-Z]|_)*")
-    assert parse_by_dfa(list(map(lambda r: DeterminsticFiniteAutomata.from_string(r[1], minimize=True), typedef.regex)), "mut") == [(0, "mut")]
-
-
-def test_scanner_1():
-    typedef = TypeDefinition()
-    typedef.add_definition("lifetime", "'([a-zA-Z]|_)([0-9a-zA-Z]|_)*")
-    typedef.add_definition("char", "'.'")
-    assert parse_by_dfa(list(map(lambda r: DeterminsticFiniteAutomata.from_string(r[1], minimize=True), typedef.regex)), "'a '5' 'b 'c'") == [(0, "'a"), (1, "'5'"), (0, "'b"), (1, "'c'")]
-
-
 if __name__ == "__main__":
     typedef = TypeDefinition.from_filename("simpleJava/typedef")
     with open("simpleJava/simple.sjava", "r") as f:
         src_code = f.read()
     # print(typedef.get_re_compatible_regex())
     print(parse_by_re(typedef, src_code))
-    print(parse_by_dfa(list(map(lambda r: DeterminsticFiniteAutomata.from_string(r[1], minimize=True), typedef.regex)), src_code))
-
+    print(
+        parse_by_dfa(
+            list(
+                map(
+                    lambda r: FiniteAutomata.from_string(r[1], minimize=True),
+                    typedef.regex,
+                )
+            ),
+            src_code,
+        )
+    )

@@ -1,4 +1,4 @@
-from typing import Callable, Deque, Dict, Set, Tuple, List, Self, Iterable
+from typing import Callable, Deque, Dict, Set, Tuple, List, Self, Iterable, Any
 from copy import copy, deepcopy
 from .regex_operation import RegexOperation
 from .finite_automata_node import (
@@ -8,6 +8,8 @@ from .finite_automata_node import (
     EpsilonTransition,
 )
 from collections import deque
+from functools import reduce
+from operator import or_
 
 
 class FANodeClosure:
@@ -99,9 +101,11 @@ class FiniteAutomata:
         start_closure = epsilon_closure([self.start_node])
         que: Deque[FANodeClosure] = deque([start_closure])
         visited: Set[FANodeClosure] = set()
+
         closure_to_node: Dict[FANodeClosure, FiniteAutomataNode] = {
             start_closure: FiniteAutomataNode()
         }
+        # now we have to consider how to merge accept actions
         contains_accept_state = lambda fa_closure: any(node in self.accept_states for node in fa_closure.closure)
         accept_states = set()
         if contains_accept_state(start_closure):
@@ -169,6 +173,9 @@ class FiniteAutomata:
 
         return type(self)(rev_start_node, {node_map[self.start_node]})
 
+    def minimize(self) -> Self:
+        return self.reverse_edge().determinize().reverse_edge().determinize()
+
     def __deepcopy__(self, memo=None) -> Self:
         def dfs(cur_node: FiniteAutomataNode, node_mapping: Dict[FiniteAutomataNode, FiniteAutomataNode], visited: Set[FiniteAutomataNode]):
             if cur_node in visited:
@@ -186,19 +193,21 @@ class FiniteAutomata:
         return type(self)(mappings[self.start_node], {mappings[node] for node in self.accept_states})
 
     @classmethod
-    def from_string(cls, regex: str, minimize=False) -> Self:
+    def from_string(cls, regex: str, determinize=False, minimize=False) -> Self:
         # WARNING:
         # by default, this function would return an NFA.
         # currently, match_first method only accepts DFA.
         # so please make sure you passed minimize=True when initialize FA objects, if you want to match something
+        # NOTE:
+        # minimize would include determinize (Min-DFA must be DFA),
+        # so determinize=False, minimize=True would still produce a DFA
         nfa = parse(deque(regex), NFANodeRegexOperation())
-        assert isinstance(nfa, FiniteAutomata)
         if minimize:
-            rev_dfa = nfa.reverse_edge().determinize()
-            min_dfa = rev_dfa.reverse_edge().determinize()
-            return min_dfa
-        else:
-            return nfa
+            nfa = nfa.minimize()
+        if not minimize and determinize:
+            nfa = nfa.determinize()
+        return nfa
+
 
     def __eq__(self, other: Self) -> bool:
         # TODO: implement a graph isomorphism algorithm to compare structure identity, e.g. Weisfeiler-Lehman Kernel
