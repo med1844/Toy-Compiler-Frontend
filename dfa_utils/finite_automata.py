@@ -50,10 +50,10 @@ class FiniteAutomata:
             node_id[cur_node] = counter
             counter += 1
 
-        self.start_node.dfs(update_counter)
+        self.start_node.dfs(update_counter, set())
 
         buffer = []
-        self.start_node.dfs(lambda node: buffer.append(format_node(node)))
+        self.start_node.dfs(lambda node: buffer.append(format_node(node)), set())
         return "\n".join(buffer)
 
     def unify_accept(self):
@@ -257,7 +257,7 @@ class FiniteAutomata:
             for prv_cond, prv_node in rev_edges[cur_node]:
                 if prv_node not in visited:
                     node_hash[prv_node] ^= (
-                        id(prv_cond) * node_hash[cur_node]
+                        hash(prv_cond) * node_hash[cur_node]
                     ) & 0xFFFFFFFFFFFFFFFF
                     second_pass_que.append(prv_node)
 
