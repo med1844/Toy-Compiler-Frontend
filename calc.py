@@ -79,10 +79,12 @@ def __assign(assi, id_, _, E):
 # action = Action.load(cfg, "simpleCalc/calc_action")
 # goto = Goto.load(cfg, "simpleCalc/calc_goto")
 
+scanner_dfa = typedef.get_dfa_list()
+
 while True:
     try:
         inputString = input(">>> ")
-        tokenList = scanner.parse_by_re(typedef, inputString)
+        tokenList = scanner.parse_by_dfa(scanner_dfa, inputString)
         pt = parser.parse(tokenList, typedef, cfg, action, goto)
         pt.evaluate(ar)
 

@@ -1,92 +1,92 @@
 block_comment /\*.*\*/
 line_comment //.*
-open_par \( (
-close_par \) )
-semicolon ; ;
-comma , ,
-open_curly_brace \{ {
-close_curly_brace \} }
-open_brace \[ [
-close_brace \] ]
-double_constant (-?)(0|([1-9][0-9]*))\.([0-9]+)? double_const
-long_constant (-?)(0|[1-9][0-9]*)(l|L) long_const
-int_constant (-?)(0|[1-9][0-9]*) int_const
-plusplus \+\+ ++
-minusminus \-\- --
-self_plus \+= +=
-plus \+{1} +
-self_minus \-= -=
-minus \-{1} -
-int int int
-double double double
-float float float
-bool bool bool
-char char char
-long long long
-short short short
-new new new
-void void void
-null null null
-return return return
-if if if
-else else else
-do do do
-while while while
-for for for
-until until until
-public public public
-private private private
-protected protected protected
-class class class
-interface interface interface
-extends extends extends
-implements implements implements
-false false false
-true true true
-switch switch switch
-package package package
-import import import
-throws throws throws
-throw throw throw
-break break break
-continue continue continue
-try try try
-catch catch catch
-finally finally finally
-final final final
-assert assert assert
-super super super
-instanceof instanceof instanceof
-static static static
-array array array
-dot \. .
-pow \*\* **
-self_multiply \*= *=
-multiply \* *
-self_divide /= /=
-divide / /
-self_modulo %= %=
-modulo % %
-equal == == 
-assignment = =
-self_left_shift <<= <<=
-left_shift << <<
-lower_equal <= <=
-lower_than < <
-self_right_shift >>= >>=
-right_shift >> >>
-higher_equal >= >=
-higher_than > >
-not_equal != !=
-or or or
-bitwise_or \| \|
-and and and
-not not not
-bitwise_and & &
-bitwise_xor ^ ^
-bitwise_not ! !
-sharp # #
-annotation @ @
-identifier ([a-zA-Z]|_)([a-zA-Z]|[0-9]|_)* id
-string_literal \"[^\"]*\" str_literal
-char_literal \'[^\']*\' char_literal
+( \(
+) \)
+; ;
+, ,
+{ \{
+} \}
+[ \[
+] \]
+double_const (-?)(0|([1-9][0-9]*))\.([0-9]+)?
+long_const (-?)(0|[1-9][0-9]*)(l|L)
+int_const (-?)(0|[1-9][0-9]*)
+++ \+\+
+-- --
++= \+=
++ \+
+-= -=
+- -
+int int
+double double
+float float
+bool bool
+char char
+long long
+short short
+new new
+void void
+null null
+return return
+if if
+else else
+do do
+while while
+for for
+until until
+public public
+private private
+protected protected
+class class
+interface interface
+extends extends
+implements implements
+false false
+true true
+switch switch
+package package
+import import
+throws throws
+throw throw
+break break
+continue continue
+try try
+catch catch
+finally finally
+final final
+assert assert
+super super
+instanceof instanceof
+static static
+array array
+. \.
+** \*\*
+*= \*=
+* \*
+/= /=
+/ /
+%= %=
+% %
+== ==
+= =
+<<= <<=
+<< <<
+<= <=
+< <
+>>= >>=
+>> >>
+>= >=
+> >
+!= !=
+or or
+\| \|
+and and
+not not
+& &
+^ ^
+! !
+# #
+@ @
+id ([a-zA-Z]|_)([a-zA-Z]|[0-9]|_)*
+str_literal \"[^\"]*\"
+char_literal \'[^\']*\'

@@ -62,12 +62,12 @@ class ContextFreeGrammar:
 
         for i, (non_terminal, symbols) in enumerate(temp):
             symbols = tuple("" if sym == "''"
-                            else typedef.get_id_by_display_name(sym) if sym not in non_terminals
+                            else typedef.get_id_by_name(sym) if sym not in non_terminals
                             else sym
                             for sym in symbols)
             grammar_to_id[(non_terminal, symbols)] = i
 
-        terminals = {typedef.get_id_by_display_name(_)
+        terminals = {typedef.get_id_by_name(_)
                      for _ in all_symbol - non_terminals if _ != "''"}
 
         return cls(typedef, terminals, non_terminals,

@@ -1,11 +1,11 @@
-open_par \( (
-close_par \) )
-int_constant (0|[1-9][0-9]*) int_const
-plus \+ +
-minus - -
-pow \*\* **
-multiply \* *
-divide / /
-modulo % %
-assignment = =
-identifier ([a-zA-Z]|\_)([a-zA-Z]|[0-9]|\_)* id
+( \(
+) \)
+int_const (0|[1-9][0-9]*)
++ \+
+- -
+** \*\*
+* \*
+/ /
+% %
+= =
+id ([a-zA-Z]|\_)([a-zA-Z]|[0-9]|\_)*
