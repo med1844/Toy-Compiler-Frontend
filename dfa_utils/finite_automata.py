@@ -8,8 +8,6 @@ from .finite_automata_node import (
     EpsilonTransition,
 )
 from collections import deque
-from functools import reduce
-from operator import or_
 
 
 class FANodeClosure:
@@ -45,30 +43,17 @@ class FiniteAutomata:
             for cond, nxt in node.successors
         )
 
-        def assign_id_dfs(
+        def update_counter(
             cur_node: FiniteAutomataNode,
         ):
             nonlocal counter
             node_id[cur_node] = counter
             counter += 1
-            for _, nxt_node in cur_node.successors:
-                if nxt_node not in node_id:
-                    assign_id_dfs(nxt_node)
 
-        def dfs(
-            cur_node: FiniteAutomataNode,
-            action: Callable[[FiniteAutomataNode], None],
-            visited: Set[FiniteAutomataNode],
-        ):
-            visited.add(cur_node)
-            action(cur_node)
-            for _, nxt_node in cur_node.successors:
-                if nxt_node not in visited:
-                    dfs(nxt_node, action, visited)
+        self.start_node.dfs(update_counter)
 
         buffer = []
-        assign_id_dfs(self.start_node)
-        dfs(self.start_node, lambda node: buffer.append(format_node(node)), set())
+        self.start_node.dfs(lambda node: buffer.append(format_node(node)))
         return "\n".join(buffer)
 
     def unify_accept(self):
@@ -208,7 +193,6 @@ class FiniteAutomata:
             nfa = nfa.determinize()
         return nfa
 
-
     def __eq__(self, other: Self) -> bool:
         # TODO: implement a graph isomorphism algorithm to compare structure identity, e.g. Weisfeiler-Lehman Kernel
         raise NotImplementedError()
@@ -303,6 +287,37 @@ class FiniteAutomata:
         if accepted_buffer:
             return "".join(accepted_buffer)
         return ""
+
+    # def to_json(self):
+    #     # returns the amount of nodes, and edges.
+    #     node_id: Dict[FiniteAutomataNode, int] = {}
+    #     counter = 0
+    #
+    #     def update_counter(
+    #         cur_node: FiniteAutomataNode,
+    #     ):
+    #         nonlocal counter
+    #         node_id[cur_node] = counter
+    #         counter += 1
+    #
+    #     self.start_node.dfs(update_counter)
+    #
+    #     # {src: [(condition, dst), ...]}
+    #     edges: Dict[int, List[Tuple[Any, int]]] = {}
+    #
+    #     def update_edges(
+    #         cur_node: FiniteAutomataNode,
+    #     ):
+    #         nonlocal node_id, edges
+    #         for (cond, nxt_node) in cur_node.successors:
+    #             edges.setdefault(node_id[cur_node], list()).append((cond.to_json(), node_id[nxt_node]))
+    #
+    #     self.start_node.dfs(update_edges)
+    #
+    #     return {
+    #         "num_node": len(node_id),
+    #         "edges": edges
+    #     }
 
 
 class NFANodeRegexOperation(RegexOperation):

@@ -1,4 +1,6 @@
-from typing import Callable, Dict, List, Optional, Self, Set, Tuple, Any
+from typing import Callable, Dict, List, Self, Set, Tuple, Any
+from io_utils.to_json import ToJson
+from io_utils.from_json import FromJson
 
 
 # modified version of https://stackoverflow.com/a/6798042
@@ -50,6 +52,17 @@ class FiniteAutomataNode(object):
 
     def add_edge(self, cond: Transition, other: "FiniteAutomataNode") -> None:
         self.successors.append((cond, other))
+
+    def dfs(
+        self,
+        action: Callable[["FiniteAutomataNode"], None],
+        visited: Set["FiniteAutomataNode"] = set(),
+    ):
+        visited.add(self)
+        action(self)
+        for _, nxt_node in self.successors:
+            if nxt_node not in visited:
+                nxt_node.dfs(action, visited)
 
 
 def test_epsilon_transition():

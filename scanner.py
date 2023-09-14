@@ -1,5 +1,4 @@
 from collections import deque
-import re
 from typing import Deque, List, Tuple
 from dfa_utils.finite_automata import FiniteAutomata
 from typeDef import TypeDefinition
