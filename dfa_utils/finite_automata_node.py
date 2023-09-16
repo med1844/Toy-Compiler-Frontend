@@ -1,11 +1,11 @@
 from typing import Callable, List, Set, Tuple, Self
 from bisect import bisect_right
-# from io_utils.to_json import ToJson
-# from io_utils.from_json import FromJson
+from io_utils.to_json import ToJson
+from io_utils.from_json import FromJson
 
 
 # range-based transition
-class Transition:
+class Transition(ToJson, FromJson):
 
     def __init__(self, *ranges: range) -> None:
         self.ranges = self.__make_no_overlap(ranges)
@@ -51,6 +51,13 @@ class Transition:
         # it must satisfy that it's subsumed by exactly one range in other.ranges
         # maybe use bisect to do that?
         return all(self.__le_range(r, other.ranges[bisect_right(other.ranges, r.start, key=lambda r: r.start) - 1]) for r in self.ranges)
+
+    def to_json(self):
+        return [(r.start, r.stop) for r in self.ranges]
+
+    @classmethod
+    def from_json(cls, obj: List[Tuple[int, int]]):
+        return cls(*map(lambda a: range(a[0], a[1]), obj))
 
 
 # enum Transition {

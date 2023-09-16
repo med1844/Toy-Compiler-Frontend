@@ -57,7 +57,7 @@ class StringRegexOperation(RegexOperation):
     def make_range_nfa(cls, *ranges: range, complementary=False) -> str:
         if complementary:
             compl_ranges: List[range] = []
-            start = START
+            start = cls.START
             for r in ranges:
                 compl_ranges.append(range(start, r.start))
                 start = r.stop

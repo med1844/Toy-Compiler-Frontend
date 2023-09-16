@@ -1,5 +1,5 @@
 from bisect import bisect_right
-from typing import Callable, Deque, Dict, Set, Tuple, List, Self, Iterable
+from typing import Callable, Deque, Dict, Set, Tuple, List, Self, Iterable, Any
 from copy import copy, deepcopy
 from .regex_operation import RegexOperation
 from .finite_automata_node import (
@@ -9,6 +9,7 @@ from .finite_automata_node import (
     EpsilonTransition,
 )
 from collections import deque
+from io_utils.to_json import ToJson
 
 
 class FANodeClosure:
@@ -24,7 +25,7 @@ class FANodeClosure:
         return self.closure == other.closure  # that's the same set of nodes, simply compare the set equivalence
 
 
-class FiniteAutomata:
+class FiniteAutomata(ToJson):
 
     def __init__(self, start_node: FiniteAutomataNode, accept_states: Set[FiniteAutomataNode] = set()) -> None:
         self.start_node = start_node
@@ -312,36 +313,38 @@ class FiniteAutomata:
             return "".join(accepted_buffer)
         return ""
 
-    # def to_json(self):
-    #     # returns the amount of nodes, and edges.
-    #     node_id: Dict[FiniteAutomataNode, int] = {}
-    #     counter = 0
-    #
-    #     def update_counter(
-    #         cur_node: FiniteAutomataNode,
-    #     ):
-    #         nonlocal counter
-    #         node_id[cur_node] = counter
-    #         counter += 1
-    #
-    #     self.start_node.dfs(update_counter)
-    #
-    #     # {src: [(condition, dst), ...]}
-    #     edges: Dict[int, List[Tuple[Any, int]]] = {}
-    #
-    #     def update_edges(
-    #         cur_node: FiniteAutomataNode,
-    #     ):
-    #         nonlocal node_id, edges
-    #         for (cond, nxt_node) in cur_node.successors:
-    #             edges.setdefault(node_id[cur_node], list()).append((cond.to_json(), node_id[nxt_node]))
-    #
-    #     self.start_node.dfs(update_edges)
-    #
-    #     return {
-    #         "num_node": len(node_id),
-    #         "edges": edges
-    #     }
+    def to_json(self):
+        # returns the amount of nodes, and edges.
+        node_id: Dict[FiniteAutomataNode, int] = {}
+        counter = 0
+
+        def update_counter(
+            cur_node: FiniteAutomataNode,
+        ):
+            nonlocal counter
+            node_id[cur_node] = counter
+            counter += 1
+
+        self.start_node.dfs(update_counter, set())
+
+        # {src: [(condition, dst), ...]}
+        edges: Dict[int, List[Tuple[Any, int]]] = {}
+
+        def update_edges(
+            cur_node: FiniteAutomataNode,
+        ):
+            nonlocal node_id, edges
+            for (cond, nxt_node) in cur_node.successors:
+                edges.setdefault(node_id[cur_node], list()).append((cond.to_json(), node_id[nxt_node]))
+
+        self.start_node.dfs(update_edges, set())
+
+        return {
+            "num_node": len(node_id),
+            "start_node": node_id[self.start_node],
+            "accept_states": sorted(map(lambda node: node_id[node], self.accept_states)),
+            "edges": edges
+        }
 
 
 class NFANodeRegexOperation(RegexOperation):
