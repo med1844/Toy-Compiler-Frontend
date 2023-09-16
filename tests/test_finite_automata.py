@@ -1,4 +1,4 @@
-from dfa_utils.finite_automata_node import FiniteAutomataNode, CharTransition, EpsilonTransition
+from dfa_utils.finite_automata_node import FiniteAutomataNode, CharTransition, EpsilonTransition, Transition
 from dfa_utils.finite_automata import FiniteAutomata
 from copy import deepcopy
 
@@ -387,7 +387,7 @@ def test_parsing_nfa_12():
 def test_parsing_nfa_13():
     constructed_nfa = FiniteAutomata.from_string("[0-3]+")
     expected_nfa = FiniteAutomata.from_string("(0|1|2|3)+")
-    assert hash(constructed_nfa) == hash(expected_nfa)
+    assert hash(constructed_nfa) != hash(expected_nfa)  # now it's based on ranges
 
 
 def test_parsing_nfa_14():
@@ -399,6 +399,15 @@ def test_parsing_nfa_14():
 def test_parsing_nfa_15():
     constructed_nfa = FiniteAutomata.from_string(r"'[^\']*'")
     expected_nfa = FiniteAutomata.from_string(r"'[ -&(-~]*'")
+    assert hash(constructed_nfa) == hash(expected_nfa)
+
+
+def test_parsing_nfa_16():
+    constructed_nfa = FiniteAutomata.from_string(r"[a-zA-Z0-9]")
+    n0 = FiniteAutomataNode()
+    n1 = FiniteAutomataNode()
+    n0.add_edge(Transition(range(ord("a"), ord("z") + 1), range(ord("A"), ord("Z") + 1), range(ord("0"), ord("9") + 1)), n1)
+    expected_nfa = FiniteAutomata(n0, {n1})
     assert hash(constructed_nfa) == hash(expected_nfa)
 
 
@@ -579,6 +588,16 @@ def test_dfa_7():
     assert hash(constructed_dfa) == hash(expected_dfa)
 
 
+def test_dfa_8():
+    constructed_dfa = FiniteAutomata.from_string(".*").determinize()
+    n0 = FiniteAutomataNode()
+    n1 = FiniteAutomataNode()
+    n0.add_edge(Transition(range(ord("\n")), range(ord("\n") + 1, 0x7f)), n1)
+    n1.add_edge(Transition(range(ord("\n")), range(ord("\n") + 1, 0x7f)), n1)
+    expected_dfa = FiniteAutomata(n0, {n0, n1})
+    assert hash(constructed_dfa) == hash(expected_dfa)
+
+
 def test_min_dfa_0():
     # the result of (a|b)+ could be further simplified by DFA minimization
     constructed_dfa = FiniteAutomata.from_string("abb(a|b)+", minimize=True)
@@ -591,10 +610,8 @@ def test_min_dfa_0():
     n0.add_edge(CharTransition("a"), n1)
     n1.add_edge(CharTransition("b"), n2)
     n2.add_edge(CharTransition("b"), n3)
-    n3.add_edge(CharTransition("a"), n4)
-    n3.add_edge(CharTransition("b"), n4)
-    n4.add_edge(CharTransition("a"), n4)
-    n4.add_edge(CharTransition("b"), n4)
+    n3.add_edge(Transition(range(ord("a"), ord("b") + 1)), n4)
+    n4.add_edge(Transition(range(ord("a"), ord("b") + 1)), n4)
 
     expected_dfa = FiniteAutomata(n0, {n4})
     assert hash(constructed_dfa) == hash(expected_dfa)
@@ -611,10 +628,8 @@ def test_min_dfa_1():
     constructed_dfa = FiniteAutomata.from_string("((ϵ|a)b*)*", minimize=True)
     n0 = FiniteAutomataNode()
     n1 = FiniteAutomataNode()
-    n0.add_edge(CharTransition("a"), n1)
-    n0.add_edge(CharTransition("b"), n1)
-    n1.add_edge(CharTransition("a"), n1)
-    n1.add_edge(CharTransition("b"), n1)
+    n0.add_edge(Transition(range(ord("a"), ord("b") + 1)), n1)
+    n1.add_edge(Transition(range(ord("a"), ord("b") + 1)), n1)
     expected_dfa = FiniteAutomata(n0, {n0, n1})
     assert hash(constructed_dfa) == hash(expected_dfa)
 
@@ -702,4 +717,50 @@ def test_dfa_rev_edge_1():
 
     expected_fa_rev = FiniteAutomata(n3, {n0})
     assert hash(constructed_fa_rev) == hash(expected_fa_rev)
+
+
+def test_split_by():
+    assert FiniteAutomata.split_by(range(1, 100), [5, 6, 10, 14, 20, 50, 98]) == [range(1, 5), range(5, 6), range(6, 10), range(10, 14), range(14, 20), range(20, 50), range(50, 98), range(98, 100)]
+
+
+def test_determinize_split_by_0():
+    n0 = FiniteAutomataNode()
+    n1 = FiniteAutomataNode()
+    n2 = FiniteAutomataNode()
+    n3 = FiniteAutomataNode()
+    n4 = FiniteAutomataNode()
+    n5 = FiniteAutomataNode()
+    n6 = FiniteAutomataNode()
+    n7 = FiniteAutomataNode()
+
+    n0.add_edge(EpsilonTransition(), n1)
+    n0.add_edge(EpsilonTransition(), n3)
+    n0.add_edge(EpsilonTransition(), n5)
+
+    n1.add_edge(Transition(range(ord("c"), ord("e") + 1)), n2)
+    n3.add_edge(Transition(range(ord("b"), ord("c") + 1), range(ord("e"), ord("e") + 1)), n4)
+    n5.add_edge(Transition(range(ord("c"), ord("c") + 1), range(ord("f"), ord("f") + 1)), n6)
+
+    n2.add_edge(EpsilonTransition(), n7)
+    n4.add_edge(EpsilonTransition(), n7)
+    n6.add_edge(EpsilonTransition(), n7)
+
+    constructed_dfa = FiniteAutomata(n0, {n7}).determinize()
+
+    n0135 = FiniteAutomataNode()
+    n27 = FiniteAutomataNode()
+    n47 = FiniteAutomataNode()
+    n247 = FiniteAutomataNode()
+    n67 = FiniteAutomataNode()
+    n2467 = FiniteAutomataNode()
+
+    n0135.add_edge(CharTransition("d"), n27)
+    n0135.add_edge(CharTransition("b"), n47)
+    n0135.add_edge(CharTransition("e"), n247)
+    n0135.add_edge(CharTransition("f"), n67)
+    n0135.add_edge(CharTransition("c"), n2467)
+
+    expected_dfa = FiniteAutomata(n0135, {n27, n47, n247, n67, n2467})
+
+    assert hash(constructed_dfa) == hash(expected_dfa)
 

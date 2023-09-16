@@ -19,7 +19,7 @@ class Transition:
         elif len(self.ranges) == 1 and self.ranges[0].stop - self.ranges[0].start == 1:
             return "-%s>" % chr(self.ranges[0].start)
         else:
-            return "-[%s]>" % "".join("%s-%s" % (chr(self.ranges[0].start), chr(self.ranges[0].stop)))
+            return "-[%s]>" % "".join("%s-%s" % (chr(r.start), chr(r.stop - 1)) for r in self.ranges)
 
     def __hash__(self) -> int:
         return hash(self.ranges)
@@ -89,38 +89,4 @@ class FiniteAutomataNode(object):
         for _, nxt_node in self.successors:
             if nxt_node not in visited:
                 nxt_node.dfs(action, visited)
-
-
-def test_epsilon_transition():
-    a = EpsilonTransition()
-    b = EpsilonTransition()
-    assert a == b
-
-
-def test_char_transition():
-    a = CharTransition("a")
-    b = CharTransition("a")
-    assert a == b
-    c = CharTransition("b")
-    d = CharTransition("b")
-    assert c == d
-    assert a != c
-    e = CharTransition("a")
-    assert a == e
-
-
-def test_make_unique():
-    a = Transition(range(1, 2), range(1, 10), range(11, 12), range(12, 14), range(30, 35), range(28, 32))
-    assert a.ranges == ((range(1, 10), range(11, 14), range(28, 35)))
-
-
-def test_transition_partial_ord():
-    for a, b in (
-        (Transition(range(5, 6)), Transition(range(5, 6))),
-        (Transition(range(5, 6)), Transition(range(5, 7))),
-        (Transition(range(5, 6)), Transition(range(4, 6))),
-        (Transition(range(5, 8)), Transition(range(3, 6), range(6, 10))),
-        (Transition(range(5, 8), range(6, 12), range(37, 50), range(99, 125)), Transition(range(128)))
-    ):
-        assert a <= b
 

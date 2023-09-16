@@ -1,4 +1,5 @@
-from typing import Callable, Deque, Dict, Set, Tuple, List, Self, Iterable, Any
+from bisect import bisect_right
+from typing import Callable, Deque, Dict, Set, Tuple, List, Self, Iterable
 from copy import copy, deepcopy
 from .regex_operation import RegexOperation
 from .finite_automata_node import (
@@ -68,6 +69,21 @@ class FiniteAutomata:
     def end_node(self) -> FiniteAutomataNode:
         return next(iter(self.accept_states))
 
+    @staticmethod
+    def split_by(rn: range, splits: List[int]) -> List[range]:
+        result_ranges: List[range] = []
+        l, r = rn.start, rn.stop
+        while True:
+            i = bisect_right(splits, l)
+            if i < len(splits) and r > splits[i]:
+                result_ranges.append(range(l, splits[i]))
+                l = splits[i]
+            else:
+                if l < r:
+                    result_ranges.append(range(l, r))
+                break
+        return result_ranges
+
     def determinize(self) -> Self:
         def epsilon_closure(n: Iterable[FiniteAutomataNode]) -> FANodeClosure:
             # the ϵ closure for a set of nodes
@@ -79,7 +95,7 @@ class FiniteAutomata:
                     continue
                 visited.add(cur)
                 for cond, nxt in cur.successors:
-                    if nxt not in visited and isinstance(cond, EpsilonTransition):
+                    if nxt not in visited and not cond.ranges:
                         que.append(nxt)
             return FANodeClosure(visited)
 
@@ -101,23 +117,31 @@ class FiniteAutomata:
             if cur in visited:
                 continue
             visited.add(cur)
-            cur_node = closure_to_node[cur]  # would be used to add edges
 
-            # for all possible outcoming edges in all nodes...
-            # since nfa could have same transition condition pointing to different nodes, we have to group first before proceed
-            group_by_edge: Dict[Transition, List[FiniteAutomataNode]] = {}
-            for cond, nxt in ((cond, nxt) for node in cur.closure for cond, nxt in node.successors if not isinstance(cond, EpsilonTransition)):
-                group_by_edge.setdefault(cond, list()).append(nxt)
+            # use scan line algo to generate the correct range to the set of reachable nodes mapping
+            # please take a look at test_finite_automata.py:test_determinize_split_by_0 for more information
+            all_ranges: List[Tuple[range, FiniteAutomataNode]] = [(r, nxt_node) for cur_node in cur.closure for t, nxt_node in cur_node.successors for r in t.ranges]
+            all_ranges.sort(key=lambda k: (k[0].start, k[0].stop))
+            range_to_nodes: Dict[range, List[FiniteAutomataNode]] = {}
+            splits = sorted(set(map(lambda k: k[0].start, all_ranges)) | set(map(lambda k: k[0].stop, all_ranges)))
+            for r, n in all_ranges:
+                for sub_r in self.split_by(r, splits):
+                    range_to_nodes.setdefault(sub_r, list()).append(n)
 
-            for cond, nxts in group_by_edge.items():
+            # aggregate transitions that points to the same finite automata node sets
+            nodes_to_ranges: Dict[Tuple[FiniteAutomataNode, ...], List[range]] = {}
+            for range_, nxts in range_to_nodes.items():
+                nodes_to_ranges.setdefault(tuple(sorted(nxts, key=id)), list()).append(range_)
+
+            for nxts, ranges in nodes_to_ranges.items():
+                cond = Transition(*ranges)
                 nxt_closure = epsilon_closure(nxts)
                 if nxt_closure not in closure_to_node:
                     closure_to_node[nxt_closure] = FiniteAutomataNode()
                     que.append(nxt_closure)
                     if contains_accept_state(nxt_closure):
                         accept_states.add(nxt_closure)
-                nxt_node = closure_to_node[nxt_closure]
-                cur_node.add_edge(cond, nxt_node)
+                closure_to_node[cur].add_edge(cond, closure_to_node[nxt_closure])
         return type(self)(closure_to_node[start_closure], {closure_to_node[c] for c in accept_states})
 
     def reverse_edge(self) -> Self:
@@ -334,13 +358,16 @@ class NFANodeRegexOperation(RegexOperation):
     def make_range_nfa(cls, *ranges: range, complementary=False) -> FiniteAutomata:
         if complementary:
             compl_ranges: List[range] = []
-            start = 0x20
+            start = cls.START
             for r in ranges:
                 compl_ranges.append(range(start, r.start))
                 start = r.stop
             compl_ranges.append(range(start, 0x7f))
             ranges = tuple(compl_ranges)
-        return cls.or_(*(cls.make_nfa(chr(i)) for r in ranges for i in r))
+        s = FiniteAutomataNode()
+        e = FiniteAutomataNode()
+        s.add_edge(Transition(*ranges), e)
+        return FiniteAutomata(s, {e})
 
     @classmethod
     def make_dot_nfa(cls) -> FiniteAutomata:
@@ -349,7 +376,7 @@ class NFANodeRegexOperation(RegexOperation):
 
     @classmethod
     def make_inverse_nfa(cls, s: str) -> FiniteAutomata:
-        return cls.make_range_nfa(range(0x20, ord(s)), range(ord(s) + 1, 0x7f))
+        return cls.make_range_nfa(range(cls.START, ord(s)), range(ord(s) + 1, 0x7f))
 
     @classmethod
     def kleene_star(cls, r: FiniteAutomata) -> FiniteAutomata:

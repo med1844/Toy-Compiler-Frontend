@@ -6,6 +6,7 @@ T = TypeVar("T")
 
 # consider this as a trait... why there's no trait in python
 class RegexOperation(ABC):
+    START = 0
 
     @staticmethod
     def make_nfa(s: str) -> T:
@@ -56,7 +57,7 @@ class StringRegexOperation(RegexOperation):
     def make_range_nfa(cls, *ranges: range, complementary=False) -> str:
         if complementary:
             compl_ranges: List[range] = []
-            start = 0x20
+            start = START
             for r in ranges:
                 compl_ranges.append(range(start, r.start))
                 start = r.stop
@@ -71,7 +72,7 @@ class StringRegexOperation(RegexOperation):
 
     @classmethod
     def make_inverse_nfa(cls, s: str) -> str:
-        return cls.make_range_nfa(range(0x20, ord(s)), range(ord(s) + 1, 0x7f))
+        return cls.make_range_nfa(range(cls.START, ord(s)), range(ord(s) + 1, 0x7f))
 
     @classmethod
     def kleene_star(cls, r: str) -> str:
