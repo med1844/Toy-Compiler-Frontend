@@ -721,6 +721,9 @@ def test_dfa_rev_edge_1():
 
 def test_split_by():
     assert FiniteAutomata.split_by(range(1, 100), [5, 6, 10, 14, 20, 50, 98]) == [range(1, 5), range(5, 6), range(6, 10), range(10, 14), range(14, 20), range(20, 50), range(50, 98), range(98, 100)]
+    assert FiniteAutomata.split_by(range(50, 100), [2, 7, 13, 29, 67, 83, 127, 149, 193]) == [range(50, 67), range(67, 83), range(83, 100)]
+    assert FiniteAutomata.split_by(range(20, 30), [5, 11, 19, 31, 41, 47]) == [range(20, 30)]
+    assert FiniteAutomata.split_by(range(20, 30), [30]) == [range(20, 30)]
 
 
 def test_determinize_split_by_0():
