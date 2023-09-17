@@ -1,5 +1,8 @@
+from typing import Callable, Dict, Tuple
 from cfg import ContextFreeGrammar
+from io_utils.to_json import ToJson
 from tree import TreeNode, Tree
+import inspect
 
 
 class PTNode(TreeNode):
@@ -28,10 +31,11 @@ class PTNode(TreeNode):
         self.getChilds().reverse()
 
 
-class ParseTreeActionRegister:
+class ParseTreeActionRegister(ToJson):
 
     def __init__(self, cfg: ContextFreeGrammar):
-        self.__productionToAction = {}
+        self.__productionToAction: Dict[int, Dict[int, Callable]] = {}
+        self.__prod_nargs: Dict[int, int] = {}  # will be used during cfg parsing
         self.__cfg = cfg
 
     def production(self, *productions, index=-1):
@@ -42,17 +46,23 @@ class ParseTreeActionRegister:
         def foo(e, e1, plus, t):
             return "bar"
         """
-        def decorate(function):
+        def decorate(function: Callable):
             for prod in productions:
+                prod_id = self.__cfg.raw_grammar_to_id[prod]
                 self.__productionToAction.\
-                    setdefault(self.__cfg.raw_grammar_to_id[prod], {})\
-                        [index] = function
+                    setdefault(prod_id, {})\
+                [index] = function
+                _, seq = self.__cfg.get_production(prod_id)
+                self.__prod_nargs[prod_id] = len(seq)
             return function
         return decorate
     
     def getProductionMapping(self):
         return self.__productionToAction
     
+    def to_json(self) -> Dict[int, Tuple[int, Dict[int, Tuple[str, str]]]]:
+        return {k: (self.__prod_nargs[k], {kk: (vv.__name__, "\n".join(filter(lambda x: not x.startswith("@"), inspect.getsource(vv).split("\n")))) for kk, vv in v.items()}) for k, v in self.__productionToAction.items()}
+
 
 class ParseTree(Tree):
 

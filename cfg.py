@@ -1,7 +1,6 @@
 from typing import Deque, Iterable, Optional, Self, Set, List, Tuple, Dict, Any
 from typeDef import TypeDefinition
 from collections import deque
-from functools import cached_property
 from io_utils.to_json import ToJson
 import json
 
@@ -468,7 +467,7 @@ class Action(ToJson):
         return resultAction
 
 
-class Goto:
+class Goto(ToJson):
 
     def __init__(self, cfg: ContextFreeGrammar, state_count: int, table: Optional[List[Dict[str, Any]]]=None):
         self.state_count = state_count
@@ -506,9 +505,14 @@ class Goto:
     def get_row(self, i):
         return [str(i)] + [str(self.table[i][k]) for k in self.non_terminals]
     
+    def to_json(self):
+        return {
+            "state_count": self.state_count, "table": self.table
+        }
+
     def save(self, filename: str):
         with open(filename, "w") as f:
-            json.dump({"state_count": self.state_count, "table": self.table}, f)
+            json.dump(self.to_json(), f)
 
     @staticmethod
     def loadFromString(cfg: ContextFreeGrammar, string):

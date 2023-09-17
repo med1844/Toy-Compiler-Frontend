@@ -1,5 +1,4 @@
-from collections.abc import Iterable
-from typing import List, Dict, Set, Tuple, Deque
+from typing import List, Dict, Set, Tuple, Deque, Callable, Iterable
 from collections import deque
 
 
@@ -18,10 +17,18 @@ class LangDef:
     """
 
     # TODO: further split into things like `trait JsonScanner`, `train JsonParser`, etc
-    def __init__(self, dfa_list_json: List[Dict], action_json: Dict, goto_json: Dict):
+    def __init__(self, dfa_list_json: List[Dict], action_json: Dict, goto_json: Dict, parse_tree_action_json: Dict[int, Tuple[int, Dict[int, Tuple[str, str]]]]):
         self.dfa_list_json = dfa_list_json
         self.action_json = action_json
         self.goto_json = goto_json
+        # we well have to do something to make actions callable...
+        self.parse_tree_action_json = {}
+        for prod_id, (n_args, d) in parse_tree_action_json.items():
+            evaled_d = {}
+            for index, (fn_name, fn_src) in d.items():
+                exec(fn_src)
+                evaled_d[index] = eval(fn_name)
+            self.parse_tree_action_json[prod_id] = (n_args, evaled_d)
 
     def __match_first(self, dfa: Dict, s: Iterable[str]) -> str:
         cur_node: int = dfa["start_node"]
@@ -37,7 +44,7 @@ class LangDef:
                 for cond, nxt_node in dfa["edges"][cur_node]:
                     # cond: List[Tuple[int, int]]
                     # nxt_node: int
-                    if not cond or any(l <= ord(c) < r for l, r in cond):
+                    if not cond or any(l <= ord(c) < r for l, r in cond):  # TODO: use bisect_right - 1
                         buffer.append(c)
                         cur_node = nxt_node
                         any_hit = True
@@ -72,5 +79,50 @@ class LangDef:
         return tokens
 
     def parse(self, tokens: List[Tuple[int, str]], actions: List[Callable]):
-        # TODO: test if decorated functions could be serialized?
-        pass
+        stateStack = [0]
+        nodeStack: List[int | str] = [-1]
+
+        # lexStr is the lexical string; token type is int.
+        for tokenType, lexStr in tokens:
+            currentState = stateStack[-1]
+            while True:
+                if self.action_json[currentState][tokenType] is None:
+                    print("ERROR: %s, %s" % (currentState, tokenType))
+                    exit()
+                actionType, nextState = self.action_json[currentState][tokenType]
+                if actionType == 0:  # shift to another state
+                    stateStack.append(nextState)
+                    nodeStack.append(lexStr)
+                    break
+                elif actionType == 1:
+                    prodID = nextState
+                    nonTerminal, sequence = cfg.get_production(prodID)
+                    nonTerminalNode = PTNode(nonTerminal, prodID=prodID)
+                    for i in range(len(sequence) - 1, -1, -1):
+                        symbol = sequence[i]
+                        if symbol == EMPTY:
+                            continue
+                        currentSymbol = nodeStack.pop()
+                        stateStack.pop()
+                        assert isinstance(currentSymbol, PTNode)
+                        nonTerminalNode.addChild(currentSymbol)
+                    nonTerminalNode.reverse()
+
+                    currentState = stateStack[-1]
+                    nextState = self.goto_json[currentState][nonTerminal]
+                    stateStack.append(nextState)
+                    nodeStack.append(nonTerminalNode)
+                    currentState = stateStack[-1]
+                    continue
+                elif actionType == 2:
+                    if needLog:
+                        log.append((str(stateStack), str(nodeStack), "ACCEPTED"))
+                    break
+                else:
+                    assert False
+
+            # print(stateStack, nodeStack, tokenType, actionType, nextState)
+        # print(nodeStack)
+        if needLog:
+            return ParseTree(nodeStack[-1]), log
+        return ParseTree(nodeStack[-1])

@@ -1,4 +1,5 @@
 from cfg import ContextFreeGrammar, gen_action_todo
+from lang_def import LangDef
 from typeDef import TypeDefinition
 from parseTree import ParseTreeActionRegister
 import scanner
@@ -75,11 +76,12 @@ def __assign(assi, id_, _, E):
 # goto = Goto.load(cfg, "simpleCalc/calc_goto")
 
 scanner_dfa = typedef.get_dfa_list()
+ld = LangDef(list(map(lambda x: x.to_json(), typedef.get_dfa_list())), action.to_json(), goto.to_json(), ar.to_json())
 
 while True:
     try:
         inputString = input(">>> ")
-        tokenList = scanner.parse_by_dfa(scanner_dfa, inputString)
+        tokenList = ld.scan(inputString)
         pt = parser.parse(tokenList, typedef, cfg, action, goto)
         pt.evaluate(ar)
 
