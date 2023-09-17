@@ -1,4 +1,4 @@
-from typing import List, Dict, Set, Tuple, Deque, Callable, Iterable
+from typing import Any, List, Dict, Set, Tuple, Deque, Callable, Iterable
 from collections import deque
 
 
@@ -22,19 +22,21 @@ class LangDef:
         dfa_list_json: List[Dict],
         action_json: Dict,
         goto_json: Dict,
-        parse_tree_action_json: Dict[int, Tuple[int, Dict[int, Tuple[str, str]]]],
+        parse_tree_action_json: Dict[int, Tuple[int, str, Tuple[str, str]]],
     ):
         self.dfa_list_json = dfa_list_json
         self.action_json = action_json
         self.goto_json = goto_json
-        # we well have to do something to make actions callable...
-        self.parse_tree_action_json = {}
-        for prod_id, (n_args, d) in parse_tree_action_json.items():
-            evaled_d = {}
-            for index, (fn_name, fn_src) in d.items():
-                exec(fn_src)
-                evaled_d[index] = eval(fn_name)
-            self.parse_tree_action_json[prod_id] = (n_args, evaled_d)
+
+        # we well have to exec function definitions to make actions callable...
+        self.parse_tree_action_json: Dict[int, Tuple[int, str, Callable]] = {}
+        for prod_id, (
+            n_args,
+            non_terminal,
+            (fn_name, fn_src),
+        ) in parse_tree_action_json.items():
+            exec(fn_src)
+            self.parse_tree_action_json[prod_id] = (n_args, non_terminal, eval(fn_name))
 
     def __match_first(self, dfa: Dict, s: Iterable[str]) -> str:
         cur_node: int = dfa["start_node"]
@@ -85,51 +87,47 @@ class LangDef:
         tokens.append((-1, "$"))
         return tokens
 
-    def parse(self, tokens: List[Tuple[int, str]], actions: List[Callable]):
-        stateStack = [0]
-        nodeStack: List[int | str] = [-1]
+    def parse(self, tokens: List[Tuple[int, str]], context: Dict[str, Any]=dict()):
+        # context stores all things that you wish to transfer between parses
+        # examples:
+        # - stored variables
+        # - function names
+        # - etc
+        state_stack = [0]
+        node_stack: List[str | Any] = [
+            -1
+        ]  # str -> terminal, Any -> evaluated non_terminal, depends on PT action fn return type
 
-        # lexStr is the lexical string; token type is int.
-        for tokenType, lexStr in tokens:
-            currentState = stateStack[-1]
+        for token_type, lex_str in tokens:
+            current_state = state_stack[-1]
             while True:
-                if self.action_json[currentState][tokenType] is None:
-                    print("ERROR: %s, %s" % (currentState, tokenType))
+                if self.action_json["table"][current_state][token_type] is None:
+                    print("ERROR: %s, %s" % (current_state, token_type))
                     exit()
-                actionType, nextState = self.action_json[currentState][tokenType]
-                if actionType == 0:  # shift to another state
-                    stateStack.append(nextState)
-                    nodeStack.append(lexStr)
+                action_type, next_state = self.action_json["table"][current_state][token_type]
+                if action_type == 0:  # shift to another state
+                    state_stack.append(next_state)
+                    node_stack.append(lex_str)
                     break
-                elif actionType == 1:
-                    prodID = nextState
-                    nonTerminal, sequence = cfg.get_production(prodID)
-                    nonTerminalNode = PTNode(nonTerminal, prodID=prodID)
-                    for i in range(len(sequence) - 1, -1, -1):
-                        symbol = sequence[i]
-                        if symbol == EMPTY:
-                            continue
-                        currentSymbol = nodeStack.pop()
-                        stateStack.pop()
-                        assert isinstance(currentSymbol, PTNode)
-                        nonTerminalNode.addChild(currentSymbol)
-                    nonTerminalNode.reverse()
+                elif action_type == 1:
+                    prod_id = next_state
+                    nargs, non_terminal, fn = self.parse_tree_action_json[prod_id]
+                    args = []
+                    for _ in range(nargs - 1, -1, -1):
+                        state_stack.pop()
+                        args.append(node_stack.pop())
+                    args.append(context)
+                    args.reverse()
 
-                    currentState = stateStack[-1]
-                    nextState = self.goto_json[currentState][nonTerminal]
-                    stateStack.append(nextState)
-                    nodeStack.append(nonTerminalNode)
-                    currentState = stateStack[-1]
+                    current_state = state_stack[-1]
+                    next_state = self.goto_json["table"][current_state][non_terminal]
+                    state_stack.append(next_state)
+                    node_stack.append(fn(*args))
+                    current_state = state_stack[-1]
                     continue
-                elif actionType == 2:
-                    if needLog:
-                        log.append((str(stateStack), str(nodeStack), "ACCEPTED"))
+                elif action_type == 2:
                     break
                 else:
                     assert False
 
-            # print(stateStack, nodeStack, tokenType, actionType, nextState)
-        # print(nodeStack)
-        if needLog:
-            return ParseTree(nodeStack[-1]), log
-        return ParseTree(nodeStack[-1])
+        return node_stack[-1]

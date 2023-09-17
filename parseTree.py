@@ -32,11 +32,10 @@ class PTNode(TreeNode):
 
 class ParseTreeActionRegister(ToJson):
     def __init__(self, cfg: ContextFreeGrammar):
-        self.__productionToAction: Dict[int, Dict[int, Callable]] = {}
-        self.__prod_nargs: Dict[int, int] = {}  # will be used during cfg parsing
+        self.__productionToAction: Dict[int, Tuple[int, str, Callable]] = {}
         self.__cfg = cfg
 
-    def production(self, *productions, index=-1):
+    def production(self, *productions: str):
         """
         register a function to run at some position in the production
 
@@ -48,9 +47,12 @@ class ParseTreeActionRegister(ToJson):
         def decorate(function: Callable):
             for prod in productions:
                 prod_id = self.__cfg.raw_grammar_to_id[prod]
-                self.__productionToAction.setdefault(prod_id, {})[index] = function
-                _, seq = self.__cfg.get_production(prod_id)
-                self.__prod_nargs[prod_id] = len(seq)
+                non_terminal, seq = self.__cfg.get_production(prod_id)
+                self.__productionToAction[prod_id] = (
+                    sum(map(lambda *_: 1, filter(lambda x: x != "''", seq))),
+                    non_terminal,
+                    function,
+                )
             return function
 
         return decorate
@@ -58,24 +60,22 @@ class ParseTreeActionRegister(ToJson):
     def getProductionMapping(self):
         return self.__productionToAction
 
-    def to_json(self) -> Dict[int, Tuple[int, Dict[int, Tuple[str, str]]]]:
+    def to_json(self) -> Dict[int, Tuple[int, str, Tuple[str, str]]]:
         return {
             k: (
-                self.__prod_nargs[k],
-                {
-                    kk: (
-                        vv.__name__,
-                        "\n".join(
-                            filter(
-                                lambda x: not x.startswith("@"),
-                                inspect.getsource(vv).split("\n"),
-                            )
-                        ),
-                    )
-                    for kk, vv in v.items()
-                },
+                nargs,
+                non_terminal,
+                (
+                    fn.__name__,
+                    "\n".join(
+                        filter(
+                            lambda x: not x.startswith("@"),
+                            inspect.getsource(fn).split("\n"),
+                        )
+                    ),
+                ),
             )
-            for k, v in self.__productionToAction.items()
+            for k, (nargs, non_terminal, fn) in self.__productionToAction.items()
         }
 
 

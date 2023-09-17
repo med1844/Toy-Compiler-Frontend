@@ -2,6 +2,7 @@ from cfg import ContextFreeGrammar, gen_action_todo
 from lang_def import LangDef
 from typeDef import TypeDefinition
 from parseTree import ParseTreeActionRegister
+from typing import Dict, Any
 import scanner
 import parser
 
@@ -16,73 +17,69 @@ ar = ParseTreeActionRegister(cfg)
 
 
 @ar.production("Statement -> E", "Statement -> Assignment")
-def __stmt(stmt, _):
-    print(_.val)
+def __stmt(_c, eval_result: int) -> int:
+    return eval_result
 
 
 @ar.production("E -> E + T")
-def __e0(e, e1, _, t):
-    e.val = e1.val + t.val
+def __e0(_c, e: int, _: str, t: int):
+    return e + t
 
 
 @ar.production("E -> E - T")
-def __e1(e, e1, _, t):
-    e.val = e1.val - t.val
+def __e1(_c, e: int, _: str, t: int):
+    return e - t
 
 
 @ar.production("E -> T", "T -> F", "F -> G")
-def __e2(a, b):
-    a.val = b.val
+def __e2(_c, b):
+    return b
 
 
 @ar.production("E -> - T")
-def __e3(g, neg, t):
-    g.val = -t.val
+def __e3(_c, _: str, t: int):
+    return -t
 
 
 @ar.production("T -> T * F")
-def __t0(t, t1, _, f):
-    t.val = t1.val * f.val
+def __t0(_c, t: int, _: str, f: int):
+    return t * f
 
 
 @ar.production("T -> T / F")
-def __t1(t, t1, _, f):
-    if t1.val % f.val:
-        t.val = t1.val / f.val
-    else:
-        t.val = t1.val // f.val
+def __t1(_c, t: int, _: str, f: int):
+    return t // f
 
 
 @ar.production("T -> T % F")
-def __t2(t, t1, _, f):
-    t.val = t1.val % f.val
+def __t2(_c, t: int, _: str, f: int):
+    return t % f
 
 
 @ar.production("F -> F ** G")
-def __f0(f, f1, _, g):
-    f.val = f1.val**g.val
+def __f0(_c, f: int, _, g: int):
+    return f**g
 
 
 @ar.production("G -> ( E )")
-def __g0(g, leftPar, e, rightPar):
-    g.val = e.val
+def __g0(_, _leftPar: str, e: int, _rightPar: str):
+    return e
 
 
 @ar.production("G -> int_const")
-def __g1(g, int_const):
-    g.val = int(int_const.getContent())
+def __g1(_, int_const: str):
+    return int(int_const)
 
 
 @ar.production("G -> id")
-def __g2(g, id_):
-    global d
-    g.val = d[id_.getContent()]
+def __g2(context: Dict[str, Any], id_: str) -> int:
+    return context[id_]
 
 
 @ar.production("Assignment -> id = E")
-def __assign(assi, id_, _, E):
-    d[id_.getContent()] = E.val
-    assi.val = d[id_.getContent()]
+def __assign(context: Dict[str, Any], id_: str, _: str, e: int):
+    context[id_] = e
+    return e
 
 
 # action = Action.load(cfg, "simpleCalc/calc_action")
@@ -96,12 +93,14 @@ ld = LangDef(
     ar.to_json(),
 )
 
+d = {}
+
 while True:
     try:
         inputString = input(">>> ")
-        tokenList = ld.scan(inputString)
-        pt = parser.parse(tokenList, typedef, cfg, action, goto)
-        pt.evaluate(ar)
+        print(ld.parse(ld.scan(inputString), d))
+        # pt = parser.parse(tokenList, typedef, cfg, action, goto)
+        # pt.evaluate(ar)
 
     except EOFError:
         break
