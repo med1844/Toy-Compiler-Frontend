@@ -1,5 +1,9 @@
-from typing import Self, Set, List, Tuple, Dict, Any
+from typing import Deque, Iterable, Optional, Self, Set, List, Tuple, Dict, Any
 from typeDef import TypeDefinition
+from collections import deque
+from functools import cached_property
+from io_utils.to_json import ToJson
+import json
 
 
 class ContextFreeGrammar:
@@ -15,6 +19,7 @@ class ContextFreeGrammar:
 
     SUBSTITUTE = "_"
     EOF = -1
+    EMPTY = ""
 
     @classmethod
     def load(cls, typedef: TypeDefinition, filename: str) -> Self:
@@ -70,12 +75,11 @@ class ContextFreeGrammar:
         terminals = {typedef.get_id_by_name(_)
                      for _ in all_symbol - non_terminals if _ != "''"}
 
-        return cls(typedef, terminals, non_terminals,
+        return cls(terminals, non_terminals,
                                   start_symbol, grammar_to_id, raw_grammar_to_id)
 
-    def __init__(self, typedef: TypeDefinition, terminals: Set[int], non_terminals: Set[str],
+    def __init__(self, terminals: Set[int], non_terminals: Set[str],
                  start_symbol: str, grammar_to_id: Dict[Tuple[str, Tuple[str | int, ...]], int], raw_grammar_to_id: Dict[str, int]):
-        self.typedef = typedef
         self.terminals = terminals
         self.non_terminals = non_terminals
         self.start_symbol = start_symbol
@@ -90,7 +94,7 @@ class ContextFreeGrammar:
     def __str__(self):
         return str(self.grammar_to_id)
     
-    def get_symbol_in_prod(self, production_id: int, dot_pos: int, offset=0):
+    def get_symbol_in_prod(self, production_id: int, dot_pos: int, offset=0) -> Optional[str | int]:
         """
         Given a production id, and the dot position, return the symbol at that 
         position.
@@ -105,7 +109,7 @@ class ContextFreeGrammar:
             return None
         return self.id_to_grammar[production_id][1][dot_pos + offset]
     
-    def get_production(self, prod_id: int):
+    def get_production(self, prod_id: int) -> Tuple[str, Tuple[str | int, ...]]:
         """
         Return the sequence of a given production.
 
@@ -174,19 +178,412 @@ class ContextFreeGrammar:
             else:
                 for id_ in ids:
                     result_grammar_to_id[self.get_production(id_)] = len(result_grammar_to_id)
-        return ContextFreeGrammar(self.typedef, self.terminals, result_non_terminals,
+        return ContextFreeGrammar(self.terminals, result_non_terminals,
                                   self.start_symbol, result_grammar_to_id, self.raw_grammar_to_id)
     
     def is_EOF(self, sym):
         return sym == -1
-        
+
+    def gen_first_set_of_symbol(self, result, symbol: str, firstDict=None) -> bool:
+        """
+        Calculate the first set of given symbol, and write the 
+        result into the reference of set "result".
+
+        Return bool value, indicating whether the first of this 
+        symbol contains EMPTY or not.
+        """
+        if firstDict is not None:
+            return firstDict[symbol]
+        hasEmpty = False
+        for production_id in self.get_productions(symbol):
+            hasEmpty |= self.gen_first_set_of_sequence(result, self.get_production(production_id)[1], firstDict)
+        return hasEmpty
+
+    def gen_first_set_of_sequence(self, result, sequence: Iterable[str | int], first_dict=None) -> bool:
+        """
+        Calculate the first set of given sequence and cfg.
+
+        Use reference of set "result" to avoid newing temp sets 
+        to accelerate.
+        """
+        has_empty = False
+        has_non_terminal = False
+        all_non_terminal_has_empty = True
+        for sym in sequence:
+            if self.is_terminal(sym) or self.is_EOF(sym):
+                result.add(sym)
+                break
+            elif self.is_non_terminal(sym):
+                assert isinstance(sym, str)
+                has_non_terminal = True
+                if first_dict is not None:
+                    result |= first_dict[sym]
+                    all_non_terminal_has_empty &= self.EMPTY in first_dict[sym]
+                else:
+                    all_non_terminal_has_empty &= self.gen_first_set_of_symbol(result, sym, first_dict)
+                if not all_non_terminal_has_empty:
+                    break
+            elif sym == self.EMPTY:
+                result.add(self.EMPTY)
+                has_empty = True
+                break
+        has_empty |= has_non_terminal and all_non_terminal_has_empty
+        if not has_empty:
+            result.discard(self.EMPTY)
+        return has_empty
+
+    def update_non_terminal_first_set(self, result: Dict[str, Set[str | int]], non_terminal: str) -> bool:
+        nt_has_empty = False
+        for id_ in self.get_productions(non_terminal):
+            has_non_terminal = False
+            all_non_terminal_has_empty = True
+            for sym in self.get_production(id_)[1]:
+                if self.is_terminal(sym):
+                    result[non_terminal].add(sym)
+                    break
+                elif self.is_non_terminal(sym):
+                    assert isinstance(sym, str)
+                    has_non_terminal = True
+                    all_non_terminal_has_empty &= self.update_non_terminal_first_set(result, sym)
+                    result[non_terminal] |= result[sym]
+                    if not all_non_terminal_has_empty:
+                        break
+                elif sym == self.EMPTY:
+                    nt_has_empty = True
+                    break
+            nt_has_empty |= has_non_terminal and all_non_terminal_has_empty
+        if nt_has_empty:
+            result[non_terminal].add(self.EMPTY)
+        else:
+            result[non_terminal].discard(self.EMPTY)
+        return nt_has_empty
+
+    def first(self) -> dict:
+        """
+        Calculate the first set of a given cfg
+        """
+        result = {k: set() for k in self.non_terminals}
+        for non, _ in self.non_terminal_to_prod_id.items():
+            if not result[non]:
+                self.update_non_terminal_first_set(result, non)
+        return result
+
+
+class LRItem:
+
+    """
+    Is in fact a tri-tuple (production id, look forward, dot position)
+    lookForward is a set, containing a set of id of terminals.
+    """
+
+    def __init__(self, production_id: int, look_forward: Set[int], dot_pos: int=0):
+        self.production_id = production_id
+        self.dot_pos = dot_pos
+        self.look_forward = look_forward  # WARNING: REFERENCE IS SHARED FOR
+                                          # PERFORMANCE. AVOID EDITING THIS.
+        self.__hash_val: Optional[int] = None
+    
+    def __eq__(self, other: Self):
+        return self.production_id == other.production_id and \
+            self.dot_pos == other.dot_pos and \
+                self.look_forward == other.look_forward
+            
+    def __hash__(self) -> int:
+        if self.__hash_val is None:
+            self.__hash_val = hash((
+                self.production_id, self.dot_pos, 
+                hash(tuple(sorted(list(self.look_forward), key=str)))
+            ))
+        return self.__hash_val
+    
+    def __str__(self):
+        return "(%s, %r, %s)" % (self.production_id, self.look_forward, self.dot_pos)
+    
+    def __repr__(self):
+        return repr(str(self))
+    
+    def __lt__(self, other: Self):
+        """
+        LRItemSet would need static order of LRItem to calculate hash.
+        """
+        if self.production_id == other.production_id:
+            if self.dot_pos == other.dot_pos:
+                return hash(self) < hash(other)
+            return self.dot_pos < other.dot_pos
+        return self.production_id < other.production_id
+
+    def get(self, cfg: ContextFreeGrammar, offset=0):
+        return cfg.get_symbol_in_prod(self.production_id, self.dot_pos, offset)
+    
+    def move_dot_forward(self):
+        return LRItem(self.production_id, self.look_forward, self.dot_pos + 1)
+    
+    def at_end(self, cfg: ContextFreeGrammar) -> bool:
+        prod = cfg.get_production(self.production_id)[1]
+        return len(prod) == self.dot_pos or prod == ("", )
+
+
+class LRItemSet:
+
+    sequence_to_first: Dict[Tuple[str | int, ...], Set[int]] = {}
+
+    def __init__(self):
+        self.items: Set[LRItem] = set()
+        self.__recalc_hash_flag = True  # lazy tag
+        self.__hash_val = None
+        self.__map = {}  # Map "step" to a list of item reference, in order to accelerate.
+
+    def __hash__(self):
+        if self.__recalc_hash_flag:
+            self.__hash_val = hash(tuple(sorted(list(self.items))))  # TIME COSTING
+            self.__recalc_hash_flag = False
+        return self.__hash_val
+    
+    def __eq__(self, other):
+        return self.items == other.items
+    
+    def __str__(self):
+        return str(self.items)
+    
+    def add_lr_item(self, item: LRItem):
+        if item not in self.items:
+            self.items.add(item)
+            self.__recalc_hash_flag = True
+
+    def get_next(self, cfg: ContextFreeGrammar) -> Set[LRItem]:
+        """
+        get all possible out-pointing edges toward other LRItems, which could be later turned into LRItemSets.
+        """
+        result = set()
+        for item in self.items:
+            step = item.get(cfg)
+            if step is not None and step != "":
+                self.__map.setdefault(step, []).append(item)
+                result.add(step)
+        return result
+
+    def goto(self, step):
+        """
+        return a new LRItemSet.
+        """
+        result = LRItemSet()
+        for item in self.__map[step]:
+            result.add_lr_item(item.move_dot_forward())
+        return result
+
+    def calc_closure(self, cfg: ContextFreeGrammar, firstDict: Dict) -> Self:
+        """
+        Return a new LRItemSet, which is the closure of self.
+        """
+        que = deque(self.items)
+        record: Dict[Tuple[int, int], Set[int]] = {}
+        while que:
+            cur = que.pop()
+            core = (cur.production_id, cur.dot_pos)
+            record.setdefault(core, set())
+            record[core] |= cur.look_forward
+
+            cur_symbol = cur.get(cfg)  # symbol at current dot position
+
+            if cfg.is_non_terminal(cur_symbol):
+                assert isinstance(cur_symbol, str)
+                prod = cfg.get_production(cur.production_id)[1][cur.dot_pos + 1:]
+                new_prods = (prod + (lookForwardSym, ) for lookForwardSym in cur.look_forward)  # precalc to accelerate
+
+                for new_prod in new_prods:
+                    if new_prod not in self.sequence_to_first:
+                        first_set = set()
+                        cfg.gen_first_set_of_sequence(first_set, new_prod, firstDict)
+                        self.sequence_to_first[new_prod] = first_set
+                    first_set = self.sequence_to_first[new_prod]
+                    for production_id in cfg.get_productions(cur_symbol):
+                        new_id_dot_pair = (production_id, 0)
+                        if new_id_dot_pair not in record or not first_set.issubset(record[new_id_dot_pair]):
+                            que.append(LRItem(production_id, first_set, 0))
+
+        result = LRItemSet()
+        for (prod_id, dot_pos), v in record.items():
+            result.add_lr_item(LRItem(prod_id, v, dot_pos))
+        return result
+
+
+class Action(ToJson):
+
+    def __init__(self, cfg: ContextFreeGrammar, stateCount: int, table=None):
+        self.state_count = stateCount
+        self.table: List[Dict[int, Optional[Tuple[int, int]]]] = [{k: None for k in cfg.terminals | {cfg.EOF}} for _ in range(self.state_count)] if table is None else table
+
+    def __getitem__(self, item):
+        return self.table[item]
+    
+    def __str__(self):
+        terminals = self.terminals
+        fmt = [len(str(_)) for _ in terminals]
+        for i in range(self.state_count):
+            for j, k in enumerate(terminals):
+                fmt[j] = max(fmt[j], len(str(self.table[i][k])))
+        str_fmt = list(map(lambda v: "%%%ds" % v, fmt))
+        result = []
+        result.append('\t'.join([" "] + [str_fmt[i] % str(k) for i, k in enumerate(terminals)]))
+        for i in range(self.state_count):
+            result.append('\t'.join([str(i)] + [str_fmt[j] % str(self.table[i][k]) for j, k in enumerate(terminals)]))
+        return '\n'.join(result)
+    
+    def __contains__(self, item):
+        return item in self.table
+
+    def __repr__(self):
+        return str(self)
+    
+    def __len__(self):
+        return self.state_count
+    
+    @property
+    def terminals(self):
+        return sorted(self.table[0].keys())
+
+    def get_head(self):
+        return ["state"] + [str(k) for k in self.terminals]
+    
+    def get_row(self, i):
+        return [str(i)] + [str(self.table[i][k]) for k in sorted(self.table[0].keys(), key=str)]
+
+    def to_json(self):
+        return {"state_count": self.state_count, "table": self.table}
+
+    def save(self, fileName):
+        with open(fileName, "w") as f:
+            json.dump({"state_count": self.state_count, "table": self.table}, f)
+    
+    @staticmethod
+    def loadFromString(cfg: ContextFreeGrammar, string):
+        obj = json.loads(string)
+        resultAction = Action(cfg, obj["stateCount"], table=obj["table"])
+        return resultAction
+
+    @staticmethod
+    def load(cfg, fileName):
+        with open(fileName, "r") as f:
+            resultAction = Action.loadFromString(cfg, f.read())
+        return resultAction
+
+
+class Goto:
+
+    def __init__(self, cfg: ContextFreeGrammar, state_count: int, table: Optional[List[Dict[str, Any]]]=None):
+        self.state_count = state_count
+        self.table: List[Dict[str, Optional[int]]] = [{k: None for k in cfg.non_terminals} for _ in range(self.state_count)] if table is None else table
+    
+    def __getitem__(self, item: int):
+        return self.table[item]
+    
+    def __str__(self):
+        non_terminals = self.non_terminals
+        fmt = [len(str(_)) for _ in non_terminals]
+        for i in range(self.state_count):
+            for j, k in enumerate(non_terminals):
+                fmt[j] = max(fmt[j], len(str(self.table[i][k])))
+        str_fmt = list(map(lambda v: "%%%ds" % v, fmt))
+        result = []
+        result.append('\t'.join([" "] + [str_fmt[i] % str(k) for i, k in enumerate(non_terminals)]))
+        for i in range(self.state_count):
+            result.append('\t'.join([str(i)] + [str_fmt[j] % str(self.table[i][k]) for j, k in enumerate(non_terminals)]))
+        return '\n'.join(result)
+    
+    def __repr__(self):
+        return str(self)
+    
+    def __len__(self):
+        return self.state_count
+    
+    @property
+    def non_terminals(self):
+        return sorted(self.table[0].keys())
+
+    def get_head(self):
+        return ["state"] + [str(k) for k in self.non_terminals]
+    
+    def get_row(self, i):
+        return [str(i)] + [str(self.table[i][k]) for k in self.non_terminals]
+    
+    def save(self, filename: str):
+        with open(filename, "w") as f:
+            json.dump({"state_count": self.state_count, "table": self.table}, f)
+
+    @staticmethod
+    def loadFromString(cfg: ContextFreeGrammar, string):
+        obj = json.loads(string)
+        resultAction = Goto(cfg, obj["state_count"], table=obj["table"])
+        return resultAction
+    
+    @staticmethod
+    def load(cfg: ContextFreeGrammar, fileName):
+        with open(fileName, "r") as f:
+            resultGoto = Goto.loadFromString(cfg, f.read())
+        return resultGoto
+
+
+def gen_action_todo(cfg: ContextFreeGrammar) -> Tuple[Action, Goto]:
+    cfg_for_first = cfg.remove_left_recursion() if cfg.is_left_recursive() else cfg
+    first_dict = cfg_for_first.first()
+
+    init_prod_id = cfg.non_terminal_to_prod_id[cfg.start_symbol][0]
+    init_item = LRItem(init_prod_id, {-1}, 0)
+
+    init_item_set = LRItemSet()
+    init_item_set.add_lr_item(init_item)
+    init_item_set = init_item_set.calc_closure(cfg, first_dict)
+
+    que: Deque[LRItemSet] = deque([init_item_set])
+    edges = {}
+
+    item_set_to_id: Dict[LRItemSet, int] = {}
+    core_to_closure = {}  # calculate closure is time-costing. Thus use a dict to accelerate.
+                          # NOTE: core means the pair of (production id, dot position)
+    while que:
+        cur = que.popleft()
+        if cur not in item_set_to_id:
+            item_set_to_id[cur] = len(item_set_to_id)
+        for step in cur.get_next(cfg):
+            next_item_set_core = cur.goto(step)  # get the core first
+
+            if next_item_set_core not in core_to_closure:
+                core_to_closure[next_item_set_core] = next_item_set_core.calc_closure(cfg, first_dict)
+            next_item_set = core_to_closure[next_item_set_core]
+
+            if next_item_set not in item_set_to_id:
+                item_set_to_id[next_item_set] = len(item_set_to_id)
+                que.append(next_item_set)
+            edges.setdefault(item_set_to_id[cur], []).append((step, item_set_to_id[next_item_set]))
+    
+    action, goto = Action(cfg, len(item_set_to_id)), Goto(cfg, len(item_set_to_id))
+    for src, v in edges.items():
+        for step, dst in v:
+            # src, step, dst forms a full edge. note that src and dst are int.
+            if cfg.is_terminal(step):
+                action[src][step] = (0, dst)  # 0 means Shift
+            elif cfg.is_non_terminal(step):
+                goto[src][step] = dst
+
+    for k, v in item_set_to_id.items():
+        for item in k.items:
+            if item.at_end(cfg):
+                for sym in item.look_forward:
+                    if item.production_id:
+                        action[v][sym] = (1, item.production_id)  # 1 means Reduce
+                    else:
+                        action[v][sym] = (2, None)  # 2 means Accept
+    return action, goto
+
 
 if __name__ == "__main__":
     typedef = TypeDefinition.from_filename("simpleJava/typedef")
-    cfg = ContextFreeGrammar.load(typedef, "simpleJava/CFG")
-    print(cfg.typedef)
+    cfg = ContextFreeGrammar.load(typedef, "simpleJava/simpleJavaCFG")
     print(cfg.terminals)
     print(cfg.non_terminals)
     print(cfg.start_symbol)
     print(cfg.grammar_to_id)
     print(cfg.raw_grammar_to_id)
+    action, goto = gen_action_todo(cfg)
+    print(action)
+    print(goto)

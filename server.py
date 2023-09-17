@@ -25,7 +25,7 @@ def generate():
     typedef = TypeDefinition.from_filename("simpleJava/typedef")
     cfg = ContextFreeGrammar.from_string(typedef, rawCFG)
     action, goto, rawItemToID = parser.genActionGoto(typedef, cfg, needItemToID=True)
-    terminals, nonTerminals = action.terminals(), goto.nonTerminals()
+    terminals, nonTerminals = action.terminals(), goto.non_terminals()
     symbols = terminals + nonTerminals
     result = [["state"] + symbols]
     app.typedef = typedef

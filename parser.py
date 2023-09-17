@@ -1,9 +1,7 @@
 from collections import deque
 from typing import List, Tuple
 from typeDef import TypeDefinition
-from cfg import ContextFreeGrammar
-from action import Action
-from goto import Goto
+from cfg import ContextFreeGrammar, Action, Goto
 from parseTree import PTNode, ParseTree
 import scanner
 
@@ -153,10 +151,9 @@ class LRItem:
         return len(prod) == self.dotPos or prod == ("", )
 
 
-sequenceToFirst = {}
-
-
 class LRItemSet:
+
+    sequenceToFirst = {}
 
     def __init__(self, cfg: ContextFreeGrammar):
         self.cfg = cfg
@@ -222,11 +219,11 @@ class LRItemSet:
                 newProds = (prod + (lookForwardSym, ) for lookForwardSym in cur.lookForward)  # precalc to accelerate
 
                 for newProd in newProds:
-                    if newProd not in sequenceToFirst:
+                    if newProd not in self.sequenceToFirst:
                         firstSet = set()
                         firstOfSeq(firstSet, self.cfg, newProd, firstDict)
-                        sequenceToFirst[newProd] = firstSet
-                    firstSet = sequenceToFirst[newProd]
+                        self.sequenceToFirst[newProd] = firstSet
+                    firstSet = self.sequenceToFirst[newProd]
                     for productionID in self.cfg.get_productions(curSym):
                         newCore = (productionID, 0)
                         if newCore not in record or not firstSet.issubset(record[newCore]):
@@ -235,7 +232,7 @@ class LRItemSet:
         result = LRItemSet(self.cfg)
         for k, v in record.items():
             v.discard(EMPTY)
-            result.addItem(LRItem(self.cfg, *k, v))
+            result.addItem(LRItem(*k, v))
         return result
 
 

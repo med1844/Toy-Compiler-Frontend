@@ -1,7 +1,5 @@
-from cfg import ContextFreeGrammar
+from cfg import ContextFreeGrammar, gen_action_todo
 from typeDef import TypeDefinition
-from action import Action
-from goto import Goto
 from parseTree import ParseTreeActionRegister
 import scanner
 import parser
@@ -12,10 +10,7 @@ d = {}
 
 typedef = TypeDefinition.from_filename("simpleCalc/typedef")
 cfg = ContextFreeGrammar.load(typedef, "simpleCalc/CFG4")
-action, goto = parser.genActionGoto(typedef, cfg)
-# action.save('simpleCalc/calc_action')
-# goto.save('simpleCalc/calc_goto')
-# exit()
+action, goto = gen_action_todo(cfg)
 ar = ParseTreeActionRegister(cfg)
 
 @ar.production('Statement -> E', 'Statement -> Assignment')
