@@ -6,12 +6,11 @@ import inspect
 
 
 class PTNode(TreeNode):
-
     def __init__(self, content, prodID=-1):
         # content may be either Token or Str
         super().__init__(content)
         super().setAttribute("__prodID", prodID)
-    
+
     def getGrammarID(self) -> int:
         return super().getAttribute("__prodID")
 
@@ -20,10 +19,10 @@ class PTNode(TreeNode):
             return self.getContent() == other
         elif isinstance(other, PTNode):
             return self.getContent() == other.getContent()
-    
+
     def __getitem__(self, key):
         return self.getAttributes()[key]
-    
+
     def __setitem__(self, key, value):
         self.getAttributes()[key] = value
 
@@ -32,7 +31,6 @@ class PTNode(TreeNode):
 
 
 class ParseTreeActionRegister(ToJson):
-
     def __init__(self, cfg: ContextFreeGrammar):
         self.__productionToAction: Dict[int, Dict[int, Callable]] = {}
         self.__prod_nargs: Dict[int, int] = {}  # will be used during cfg parsing
@@ -46,26 +44,42 @@ class ParseTreeActionRegister(ToJson):
         def foo(e, e1, plus, t):
             return "bar"
         """
+
         def decorate(function: Callable):
             for prod in productions:
                 prod_id = self.__cfg.raw_grammar_to_id[prod]
-                self.__productionToAction.\
-                    setdefault(prod_id, {})\
-                [index] = function
+                self.__productionToAction.setdefault(prod_id, {})[index] = function
                 _, seq = self.__cfg.get_production(prod_id)
                 self.__prod_nargs[prod_id] = len(seq)
             return function
+
         return decorate
-    
+
     def getProductionMapping(self):
         return self.__productionToAction
-    
+
     def to_json(self) -> Dict[int, Tuple[int, Dict[int, Tuple[str, str]]]]:
-        return {k: (self.__prod_nargs[k], {kk: (vv.__name__, "\n".join(filter(lambda x: not x.startswith("@"), inspect.getsource(vv).split("\n")))) for kk, vv in v.items()}) for k, v in self.__productionToAction.items()}
+        return {
+            k: (
+                self.__prod_nargs[k],
+                {
+                    kk: (
+                        vv.__name__,
+                        "\n".join(
+                            filter(
+                                lambda x: not x.startswith("@"),
+                                inspect.getsource(vv).split("\n"),
+                            )
+                        ),
+                    )
+                    for kk, vv in v.items()
+                },
+            )
+            for k, v in self.__productionToAction.items()
+        }
 
 
 class ParseTree(Tree):
-
     def __init__(self, root):
         super().__init__(root)
 

@@ -9,32 +9,32 @@ class TreeNode:
 
     def __setattr__(self, key, value):
         self.getAttributes()[key] = value
-    
+
     def __getattr__(self, key):
         return self.getAttributes()[key]
 
     def __contains__(self, item):
         return item in self.getAttributes()
-        
+
     def __str__(self):
         return str(self.getContent())
-    
+
     def __repr__(self):
         return "'" + str(self) + "'"
 
     def getAttributes(self) -> dict:
         return super().__getattribute__("__d")
-    
+
     def setAttribute(self, key, value):
         super().__setattr__(key, value)
-    
+
     def getAttribute(self, key):
         return super().__getattribute__(key)
-    
+
     def addChild(self, node):
         assert isinstance(node, TreeNode)
         self.getChilds().append(node)
-    
+
     def getChilds(self) -> list:
         return super().__getattribute__("__childs")
 
@@ -45,7 +45,7 @@ class TreeNode:
         for child in self.getChilds():
             child.apply(func)
         func(self, self.getChilds())
-    
+
     def preApply(self, func):
         func(self, self.getChilds())
         for child in self.getChilds():
@@ -93,11 +93,20 @@ class TreeNode:
                         rc[line].append(cc[line])
                     else:
                         rc[line].append(" " * w[i])
-                rc[line] = " " * leftMargin + (" " * self.SPLIT_LENGTH).join(rc[line]) + " " * rightMargin
-            tot_slash = (wa - firstLLen - lastRLen)
+                rc[line] = (
+                    " " * leftMargin
+                    + (" " * self.SPLIT_LENGTH).join(rc[line])
+                    + " " * rightMargin
+                )
+            tot_slash = wa - firstLLen - lastRLen
             lts = (tot_slash - 1) >> 1
             rts = tot_slash - lts - 1
-            firstLine = "%s%s|%s%s" % (" " * firstLLen, "_" * lts, "_" * rts, " " * lastRLen)
+            firstLine = "%s%s|%s%s" % (
+                " " * firstLLen,
+                "_" * lts,
+                "_" * rts,
+                " " * lastRLen,
+            )
             ret3 = firstLLen + lts
             if len(val) > tot_slash:
                 morePart = len(val) - tot_slash
@@ -166,15 +175,14 @@ class TreeNode:
 
 
 class Tree:
-
     def __init__(self, root):
         assert isinstance(root, TreeNode)
         self.__root = root
 
     def __str__(self):
         c, _, _, _ = self.__root.format()
-        return '\n'.join(c)
-    
+        return "\n".join(c)
+
     def getRoot(self) -> TreeNode:
         return self.__root
 
@@ -183,13 +191,13 @@ class Tree:
         apply @param func on every TreeNode
         the format of func param should be:
         func(parent, childs)
-        parent is a TreeNode, Childs is a list 
+        parent is a TreeNode, Childs is a list
         containing TreeNodes
         """
         self.getRoot().apply(func)
 
     def preApply(self, func):
         self.getRoot().preApply(func)
-    
+
     def run(self, func):
         self.getRoot().run(func)

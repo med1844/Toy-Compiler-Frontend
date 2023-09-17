@@ -8,20 +8,21 @@ from typeDef import TypeDefinition
 import parser
 import scanner
 import os
+
 app = Flask(__name__)
 
 
 app.secret_key = os.urandom(16)
 
 
-@app.route('/')
+@app.route("/")
 def index():
     return render_template("index.html")
 
 
-@app.route('/generateLR', methods=['POST'])
+@app.route("/generateLR", methods=["POST"])
 def generate():
-    rawCFG = request.form['CFG']
+    rawCFG = request.form["CFG"]
     typedef = TypeDefinition.from_filename("simpleJava/typedef")
     cfg = ContextFreeGrammar.from_string(typedef, rawCFG)
     action, goto, rawItemToID = parser.genActionGoto(typedef, cfg, needItemToID=True)
@@ -34,31 +35,34 @@ def generate():
     app.goto = goto
 
     for i in range(len(action)):
-        result.append([str(i)] + [str(action[i][k]) for k in terminals] + [str(goto[i][k]) for k in nonTerminals])
+        result.append(
+            [str(i)]
+            + [str(action[i][k]) for k in terminals]
+            + [str(goto[i][k]) for k in nonTerminals]
+        )
 
     itemToID = {}
     for k, v in rawItemToID.items():
         itemToID[parser.toStr(typedef, k)] = v
-    
+
     cfgForFirst = cfg.remove_left_recursion() if cfg.is_left_recursive() else cfg
     firstDict = parser.first(cfgForFirst)
-    firstSet = {k: ', '.join([typedef.get_display_name_by_id(sym) for sym in v])
-                for k, v in firstDict.items()}
+    firstSet = {
+        k: ", ".join([typedef.get_display_name_by_id(sym) for sym in v])
+        for k, v in firstDict.items()
+    }
 
     return render_template(
-        "parse_result.html", 
-        itemToID=itemToID,
-        table=result,
-        firstSet=firstSet
+        "parse_result.html", itemToID=itemToID, table=result, firstSet=firstSet
     )
 
-@app.route('/parse', methods=['POST', 'GET'])
+
+@app.route("/parse", methods=["POST", "GET"])
 def parse():
-    string = request.form['string']
+    string = request.form["string"]
     tokenList = scanner.parse_by_re(app.typedef, string, ["space"])
-    
-    pt, log = parser.parse(tokenList, app.typedef, app.cfg, app.action, app.goto, needLog=True)
-    return {
-        'pt': str(pt),
-        'log': log
-    }
+
+    pt, log = parser.parse(
+        tokenList, app.typedef, app.cfg, app.action, app.goto, needLog=True
+    )
+    return {"pt": str(pt), "log": log}

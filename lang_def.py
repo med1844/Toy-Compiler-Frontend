@@ -17,7 +17,13 @@ class LangDef:
     """
 
     # TODO: further split into things like `trait JsonScanner`, `train JsonParser`, etc
-    def __init__(self, dfa_list_json: List[Dict], action_json: Dict, goto_json: Dict, parse_tree_action_json: Dict[int, Tuple[int, Dict[int, Tuple[str, str]]]]):
+    def __init__(
+        self,
+        dfa_list_json: List[Dict],
+        action_json: Dict,
+        goto_json: Dict,
+        parse_tree_action_json: Dict[int, Tuple[int, Dict[int, Tuple[str, str]]]],
+    ):
         self.dfa_list_json = dfa_list_json
         self.action_json = action_json
         self.goto_json = goto_json
@@ -44,7 +50,9 @@ class LangDef:
                 for cond, nxt_node in dfa["edges"][cur_node]:
                     # cond: List[Tuple[int, int]]
                     # nxt_node: int
-                    if not cond or any(l <= ord(c) < r for l, r in cond):  # TODO: use bisect_right - 1
+                    if not cond or any(
+                        l <= ord(c) < r for l, r in cond
+                    ):  # TODO: use bisect_right - 1
                         buffer.append(c)
                         cur_node = nxt_node
                         any_hit = True
@@ -59,11 +67,10 @@ class LangDef:
         return ""
 
     def scan(self, s: str) -> List[Tuple[int, str]]:
-        def parse_one_word(
-            dfa_list: List[Dict], s: Deque[str]
-        ) -> Tuple[int, str]:
+        def parse_one_word(dfa_list: List[Dict], s: Deque[str]) -> Tuple[int, str]:
             return max(
-                enumerate(self.__match_first(dfa, s) for dfa in dfa_list), key=lambda x: x[1]
+                enumerate(self.__match_first(dfa, s) for dfa in dfa_list),
+                key=lambda x: x[1],
             )
 
         tokens = []

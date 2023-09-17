@@ -12,17 +12,19 @@ EMPTY = ""
 
 def firstOfSym(result, cfg, sym, firstDict=None) -> bool:
     """
-    Calculate the first set of given symbol, and write the 
+    Calculate the first set of given symbol, and write the
     result into the reference of set "result".
 
-    Return bool value, indicating whether the first of this 
+    Return bool value, indicating whether the first of this
     symbol contains EMPTY or not.
     """
     if firstDict is not None:
         return firstDict[sym]
     hasEmpty = False
     for productionID in cfg.getProductions(sym):
-        hasEmpty |= firstOfSeq(result, cfg, cfg.getProduction(productionID)[1], firstDict)
+        hasEmpty |= firstOfSeq(
+            result, cfg, cfg.getProduction(productionID)[1], firstDict
+        )
     return hasEmpty
 
 
@@ -30,7 +32,7 @@ def firstOfSeq(result, cfg: ContextFreeGrammar, sequence, firstDict=None) -> boo
     """
     Calculate the first set of given sequence and cfg.
 
-    Use reference of set "result" to avoid newing temp sets 
+    Use reference of set "result" to avoid newing temp sets
     to accelerate.
     """
     hasEmpty = False
@@ -103,33 +105,40 @@ class LRItem:
     lookForward is a set, containing a set of id of terminals.
     """
 
-    def __init__(self, cfg: ContextFreeGrammar, productionID, dotPos=0, lookForward=None):
+    def __init__(
+        self, cfg: ContextFreeGrammar, productionID, dotPos=0, lookForward=None
+    ):
         self.cfg: ContextFreeGrammar = cfg
         self.productionID = productionID
         self.dotPos = dotPos
         self.lookForward = lookForward  # WARNING: REFERENCE IS SHARED FOR
-                                        # PERFORMANCE. AVOID EDITING THIS.
+        # PERFORMANCE. AVOID EDITING THIS.
         self.__hashVal = None
-    
+
     def __eq__(self, other):
-        return self.productionID == other.productionID and \
-            self.dotPos == other.dotPos and \
-                self.lookForward == other.lookForward
-            
+        return (
+            self.productionID == other.productionID
+            and self.dotPos == other.dotPos
+            and self.lookForward == other.lookForward
+        )
+
     def __hash__(self):
         if self.__hashVal is None:
-            self.__hashVal = hash((
-                self.productionID, self.dotPos, 
-                hash(tuple(sorted(list(self.lookForward), key=str)))
-            ))
+            self.__hashVal = hash(
+                (
+                    self.productionID,
+                    self.dotPos,
+                    hash(tuple(sorted(list(self.lookForward), key=str))),
+                )
+            )
         return self.__hashVal
-    
+
     def __str__(self):
         return "(%s, %s, %r)" % (self.productionID, self.dotPos, self.lookForward)
-    
+
     def __repr__(self):
         return repr(str(self))
-    
+
     def __lt__(self, other):
         """
         LRItemSet would need static order of LRItem to calculate hash.
@@ -142,13 +151,13 @@ class LRItem:
 
     def get(self, offset=0):
         return self.cfg.get_symbol_in_prod(self.productionID, self.dotPos, offset)
-    
+
     def gotoNext(self):
         return LRItem(self.cfg, self.productionID, self.dotPos + 1, self.lookForward)
-    
+
     def atEnd(self) -> bool:
         prod = self.cfg.get_production(self.productionID)[1]
-        return len(prod) == self.dotPos or prod == ("", )
+        return len(prod) == self.dotPos or prod == ("",)
 
 
 class LRItemSet:
@@ -160,20 +169,22 @@ class LRItemSet:
         self.items = set()
         self.__needRecalculateHash = True  # lazy tag
         self.__hashVal = None
-        self.__map = {}  # Map "step" to a list of item reference, in order to accelerate.
+        self.__map = (
+            {}
+        )  # Map "step" to a list of item reference, in order to accelerate.
 
     def __hash__(self):
         if self.__needRecalculateHash:
             self.__hashVal = hash(tuple(sorted(list(self.items))))  # TIME COSTING
             self.__needRecalculateHash = False
         return self.__hashVal
-    
+
     def __eq__(self, other):
         return self.items == other.items
-    
+
     def __str__(self):
         return str(self.items)
-    
+
     def addItem(self, item):
         if item not in self.items:
             self.items.add(item)
@@ -215,8 +226,10 @@ class LRItemSet:
             curSym = cur.get()  # symbol at current dot position
 
             if self.cfg.is_non_terminal(curSym):
-                prod = self.cfg.get_production(cur.productionID)[1][cur.dotPos + 1:]
-                newProds = (prod + (lookForwardSym, ) for lookForwardSym in cur.lookForward)  # precalc to accelerate
+                prod = self.cfg.get_production(cur.productionID)[1][cur.dotPos + 1 :]
+                newProds = (
+                    prod + (lookForwardSym,) for lookForwardSym in cur.lookForward
+                )  # precalc to accelerate
 
                 for newProd in newProds:
                     if newProd not in self.sequenceToFirst:
@@ -226,7 +239,9 @@ class LRItemSet:
                     firstSet = self.sequenceToFirst[newProd]
                     for productionID in self.cfg.get_productions(curSym):
                         newCore = (productionID, 0)
-                        if newCore not in record or not firstSet.issubset(record[newCore]):
+                        if newCore not in record or not firstSet.issubset(
+                            record[newCore]
+                        ):
                             que.append(LRItem(self.cfg, productionID, 0, firstSet))
 
         result = LRItemSet(self.cfg)
@@ -244,15 +259,17 @@ def symToString(typedef, sym):
 
 def itemToString(typedef, item):
     non, seq = item.cfg.getProduction(item.productionID)
-    seqStr = " ".join(symToString(typedef, _) for _ in seq[:item.dotPos]) \
-             + "." \
-             + " ".join(symToString(typedef, _) for _ in seq[item.dotPos:])
+    seqStr = (
+        " ".join(symToString(typedef, _) for _ in seq[: item.dotPos])
+        + "."
+        + " ".join(symToString(typedef, _) for _ in seq[item.dotPos :])
+    )
     lfStr = "%s" % "/".join(sorted(symToString(typedef, _) for _ in item.lookForward))
     return "%s -> %s, %s" % (non, seqStr, lfStr)
 
 
 def itemSetToString(typedef, itemSet):
-    return '\n'.join(sorted(itemToString(typedef, _) for _ in itemSet.items))
+    return "\n".join(sorted(itemToString(typedef, _) for _ in itemSet.items))
 
 
 def toStr(typedef, obj):
@@ -279,13 +296,17 @@ def debugDetail(item, typedef, IDToItem, cfg):
 def debug(src, step, dst, table, tableName, collisionItem, typedef, IDToItem, cfg):
     print("=" * 50)
     print(
-        "[ERROR] NOT LR 1 GRAMMAR: %s[%d][%s] has already been taken, value: %r. Trying to put: %r." \
+        "[ERROR] NOT LR 1 GRAMMAR: %s[%d][%s] has already been taken, value: %r. Trying to put: %r."
         % (tableName, src, step, table[src][step], collisionItem)
     )
     print(
-        ("Source: Item %d:\n%s\n" % (src, toStr(typedef, IDToItem[src]))) + \
-        ("Step: %s\n" % toStr(typedef, step)) + \
-        ("Dest Item %d:\n%s" % (dst, toStr(typedef, IDToItem[dst])) if dst is not None else "")
+        ("Source: Item %d:\n%s\n" % (src, toStr(typedef, IDToItem[src])))
+        + ("Step: %s\n" % toStr(typedef, step))
+        + (
+            "Dest Item %d:\n%s" % (dst, toStr(typedef, IDToItem[dst]))
+            if dst is not None
+            else ""
+        )
     )
     debugDetail(table[src][step], typedef, IDToItem, cfg)
     debugDetail(collisionItem, typedef, IDToItem, cfg)
@@ -306,7 +327,9 @@ def genActionGoto(typedef: TypeDefinition, cfg: ContextFreeGrammar, needItemToID
     edges = {}
 
     itemToID = {}
-    coreToClosure = {}  # calculate closure is time-costing. Thus use a dict to accelerate.
+    coreToClosure = (
+        {}
+    )  # calculate closure is time-costing. Thus use a dict to accelerate.
     while que:
         cur = que.popleft()
         if cur not in itemToID:
@@ -322,7 +345,7 @@ def genActionGoto(typedef: TypeDefinition, cfg: ContextFreeGrammar, needItemToID
                 itemToID[nextItemSet] = len(itemToID)
                 que.append(nextItemSet)
             edges.setdefault(itemToID[cur], []).append((step, itemToID[nextItemSet]))
-    
+
     # for k, v in itemToID.items():
     #     print(v)
     #     print(toStr(typedef, k))
@@ -337,7 +360,17 @@ def genActionGoto(typedef: TypeDefinition, cfg: ContextFreeGrammar, needItemToID
             # print("%d -> %d via %r" % (src, dst, step))
             if cfg.is_terminal(step):
                 if action[src][step] is not None:
-                    debug(src, step, dst, action, "action", (0, dst), typedef, IDToItem, cfg)
+                    debug(
+                        src,
+                        step,
+                        dst,
+                        action,
+                        "action",
+                        (0, dst),
+                        typedef,
+                        IDToItem,
+                        cfg,
+                    )
                 else:
                     action[src][step] = (0, dst)  # 0 means Shift
             elif cfg.is_non_terminal(step):
@@ -352,7 +385,17 @@ def genActionGoto(typedef: TypeDefinition, cfg: ContextFreeGrammar, needItemToID
             if item.atEnd():
                 for sym in item.lookForward:
                     if action[v][sym] is not None:
-                        debug(v, sym, None, action, "action", (1, item.productionID), typedef, IDToItem, cfg)
+                        debug(
+                            v,
+                            sym,
+                            None,
+                            action,
+                            "action",
+                            (1, item.productionID),
+                            typedef,
+                            IDToItem,
+                            cfg,
+                        )
                     else:
                         if item.productionID:
                             action[v][sym] = (1, item.productionID)  # 1 means Reduce
@@ -364,13 +407,20 @@ def genActionGoto(typedef: TypeDefinition, cfg: ContextFreeGrammar, needItemToID
         return action, goto
 
 
-def parse(tokenList: List[Tuple[int, str]], typedef: TypeDefinition, cfg: ContextFreeGrammar, action=None, goto=None, needLog=False):
+def parse(
+    tokenList: List[Tuple[int, str]],
+    typedef: TypeDefinition,
+    cfg: ContextFreeGrammar,
+    action=None,
+    goto=None,
+    needLog=False,
+):
     if action is None or goto is None:
         action, goto = genActionGoto(typedef, cfg)
-    
+
     if needLog:
         log = []
-    
+
     stateStack, nodeStack = [0], [PTNode(cfg.EOF)]  # PTNode Objects in nodeStack
 
     # lexStr is the lexical string; token type is int.
@@ -385,8 +435,13 @@ def parse(tokenList: List[Tuple[int, str]], typedef: TypeDefinition, cfg: Contex
                 stateStack.append(nextState)
                 nodeStack.append(PTNode(lexStr))
                 if needLog:
-                    log.append((str(stateStack), str(nodeStack),
-                        "Shift to state %d" % nextState))
+                    log.append(
+                        (
+                            str(stateStack),
+                            str(nodeStack),
+                            "Shift to state %d" % nextState,
+                        )
+                    )
                 break
             elif actionType == 1:
                 prodID = nextState
@@ -396,9 +451,12 @@ def parse(tokenList: List[Tuple[int, str]], typedef: TypeDefinition, cfg: Contex
                         (
                             str(stateStack),
                             str(nodeStack),
-                            "Reduce using production %d: %s -> %s" \
-                            % (prodID, nonTerminal, ' '.join(toStr(typedef, _)
-                                for _ in sequence))
+                            "Reduce using production %d: %s -> %s"
+                            % (
+                                prodID,
+                                nonTerminal,
+                                " ".join(toStr(typedef, _) for _ in sequence),
+                            ),
                         )
                     )
                 nonTerminalNode = PTNode(nonTerminal, prodID=prodID)
@@ -443,7 +501,9 @@ if __name__ == "__main__":
 
     with open(FOLDER + "test.sjava", "r") as f:
         src = f.read()
-    tokenList = scanner.parse_by_re(typedef, src, ['line_comment', 'block_comment', 'space'])
+    tokenList = scanner.parse_by_re(
+        typedef, src, ["line_comment", "block_comment", "space"]
+    )
     print(tokenList)
     pt = parse(tokenList, typedef, cfg, action, goto)
     print(pt)
