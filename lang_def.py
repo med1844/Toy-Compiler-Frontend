@@ -17,6 +17,7 @@ class LangDef:
     When build from scratch, put typedef.to_json(), action.to_json(), and goto.to_json() here.
     """
 
+    # TODO: further split into things like `trait JsonScanner`, `train JsonParser`, etc
     def __init__(self, dfa_list_json: List[Dict], action_json: Dict, goto_json: Dict):
         self.dfa_list_json = dfa_list_json
         self.action_json = action_json
@@ -70,3 +71,6 @@ class LangDef:
         tokens.append((-1, "$"))
         return tokens
 
+    def parse(self, tokens: List[Tuple[int, str]], actions: List[Callable]):
+        # TODO: test if decorated functions could be serialized?
+        pass
