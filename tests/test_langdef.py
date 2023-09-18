@@ -302,11 +302,11 @@ def gen_calc():
     cfg = ContextFreeGrammar.from_string(
         typedef,
         """
-    START -> E
-    E -> E + T | E - T | T
-    T -> T * F | F
-    F -> ( E ) | int_const
-    """,
+        START -> E
+        E -> E + T | E - T | T
+        T -> T * F | F
+        F -> ( E ) | int_const
+        """,
     )
     ar = ProductionFnRegister(cfg)
 
@@ -348,4 +348,5 @@ def test_lang_to_from_json(gen_calc: LangDef):
     reconstructed_ld = LangDef.from_json(gen_calc.to_json())
     l = [randint(0, 10) for _ in range(50)]
     in_ = " + ".join(map(str, l))
-    assert gen_calc.eval(in_) == reconstructed_ld.eval(in_)
+    assert gen_calc.eval(in_) == reconstructed_ld.eval(in_) == sum(l)
+
