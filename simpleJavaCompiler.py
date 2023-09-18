@@ -4,7 +4,7 @@ from typeDef import TypeDefinition
 from action import Action
 from goto import Goto
 from Ast import ASTNode, AbstractSyntaxTree, ASTActionRegister
-from parseTree import ParseTreeActionRegister
+from parseTree import ProductionFnRegister
 import scanner
 import parser
 import sys
@@ -18,7 +18,7 @@ cfg = ContextFreeGrammar.load(typedef, "simpleJava/simpleJavaCFG")
 # exit()
 action = Action.load(cfg, "simpleJava/simpleJavaAction")
 goto = Goto.load(cfg, "simpleJava/simpleJavaGoto")
-par = ParseTreeActionRegister(cfg)
+par = ProductionFnRegister(cfg)
 
 
 cb_count = -2

@@ -2,7 +2,7 @@ from cfg import ContextFreeGrammar
 from typeDef import TypeDefinition
 from action import Action
 from goto import Goto
-from parseTree import ParseTreeActionRegister
+from parseTree import ProductionFnRegister
 import scanner
 import parser
 

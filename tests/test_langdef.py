@@ -1,7 +1,7 @@
 from lang_def import LangDef
 from typeDef import TypeDefinition
 from cfg import ContextFreeGrammar, gen_action_todo
-from parseTree import ParseTreeActionRegister
+from production_fn_register import ProductionFnRegister
 import pytest
 from random import randint
 
@@ -308,7 +308,7 @@ def gen_calc():
     F -> ( E ) | int_const
     """,
     )
-    ar = ParseTreeActionRegister(cfg)
+    ar = ProductionFnRegister(cfg)
 
     @ar.production("E -> T", "T -> F")
     def __identity(_, e: int) -> int:

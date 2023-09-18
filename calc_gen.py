@@ -1,7 +1,7 @@
 from cfg import ContextFreeGrammar, gen_action_todo
 from lang_def import LangDef
 from typeDef import TypeDefinition
-from parseTree import ParseTreeActionRegister
+from production_fn_register import ProductionFnRegister
 from typing import Dict, Any
 import json
 
@@ -12,7 +12,7 @@ d = {}
 typedef = TypeDefinition.from_filename("simpleCalc/typedef")
 cfg = ContextFreeGrammar.load(typedef, "simpleCalc/CFG4")
 action, goto = gen_action_todo(cfg)
-ar = ParseTreeActionRegister(cfg)
+ar = ProductionFnRegister(cfg)
 
 
 @ar.production("Statement -> E", "Statement -> Assignment")
