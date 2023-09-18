@@ -5,7 +5,7 @@ from io_utils.from_json import FromJson
 from io_utils.to_json import ToJson
 
 
-class LangDef(ToJson):
+class LangDef(ToJson, FromJson):
     """
     A class that captures everything that's required by a compiler front-end, with no dependency.
     This allows things to be portable, i.e. copy json files or embed them, and copy this class.
@@ -23,22 +23,35 @@ class LangDef(ToJson):
     def __init__(
         self,
         dfa_list_json: List[Dict],
+        raw_grammar_to_id: Dict[str, int],
+        prod_id_to_narg_and_non_terminal: Dict[str, Tuple[int, str]],
         action_json: Dict,
         goto_json: Dict,
-        parse_tree_action_json: Dict[str, Tuple[int, str, Tuple[str, str]]],
     ):
         self.dfa_list_json = dfa_list_json
+        self.raw_grammar_to_id = raw_grammar_to_id
+        self.prod_id_to_narg_and_non_terminal = prod_id_to_narg_and_non_terminal
         self.action_json = action_json
         self.goto_json = goto_json
 
-        # we well have to exec function definitions to make actions callable...
-        self.parse_tree_action_json: Dict[
-            str, Tuple[int, str, Tuple[str, str]]
-        ] = parse_tree_action_json
-        self.evaluated_functions: Dict[str, Callable] = {}
-        for prod_id, (_, _, (fn_name, fn_src)) in parse_tree_action_json.items():
-            exec(fn_src)
-            self.evaluated_functions[prod_id] = eval(fn_name)
+        self.prod_id_to_fn: Dict[str, Callable] = {}  # this member won't be exported
+            # but still, use same convention that key is str
+
+    def production(self, *productions: str):
+        """
+        register a function to run at some position in the production
+
+        @tree.production('E -> E "+" T')
+        def foo(e, e1, plus, t):
+            return "bar"
+        """
+
+        def decorate(function: Callable):
+            for prod in productions:
+                self.prod_id_to_fn[str(self.raw_grammar_to_id[prod])] = function
+            return function
+
+        return decorate
 
     def __match_first(self, dfa: Dict, s: Iterable[str]) -> str:
         cur_node: str = dfa["start_node"]
@@ -114,8 +127,8 @@ class LangDef(ToJson):
                     break
                 elif action_type == 1:
                     prod_id: int = next_state
-                    nargs, non_terminal, _ = self.parse_tree_action_json[str(prod_id)]
-                    fn = self.evaluated_functions[str(prod_id)]
+                    nargs, non_terminal = self.prod_id_to_narg_and_non_terminal[str(prod_id)]
+                    fn = self.prod_id_to_fn[str(prod_id)]
                     args = []
                     for _ in range(nargs):
                         state_stack.pop()
@@ -142,16 +155,18 @@ class LangDef(ToJson):
     def to_json(self):
         return {
             "dfa_list_json": self.dfa_list_json,
+            "raw_grammar_to_id": self.raw_grammar_to_id,
+            "prod_id_to_narg_and_non_terminal": self.prod_id_to_narg_and_non_terminal,
             "action_json": self.action_json,
             "goto_json": self.goto_json,
-            "parse_tree_action_json": self.parse_tree_action_json,
         }
 
     @classmethod
     def from_json(cls, obj: Dict[str, Any]):
         return cls(
             obj["dfa_list_json"],
+            obj["raw_grammar_to_id"],
+            obj["prod_id_to_narg_and_non_terminal"],
             obj["action_json"],
             obj["goto_json"],
-            obj["parse_tree_action_json"],
         )

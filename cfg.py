@@ -133,6 +133,14 @@ class ContextFreeGrammar:
         """
         return self.id_to_grammar[prod_id]
 
+    @property
+    def prod_id_to_nargs_and_non_terminal(self) -> Dict[str, Tuple[int, str]]:
+        """A helper function solely for LangDef"""
+        return {
+            str(k): (sum(map(lambda *_: 1, filter(lambda x: x != "''", seq))), non_terminal)
+            for k, (non_terminal, seq) in self.id_to_grammar.items()
+        }
+
     def is_non_terminal(self, op: Any):
         return op in self.non_terminals
 
