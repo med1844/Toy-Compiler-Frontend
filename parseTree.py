@@ -3,6 +3,7 @@ from cfg import ContextFreeGrammar
 from io_utils.to_json import ToJson
 from tree import TreeNode, Tree
 import inspect
+import itertools
 
 
 class PTNode(TreeNode):
@@ -60,6 +61,20 @@ class ParseTreeActionRegister(ToJson):
     def getProductionMapping(self):
         return self.__productionToAction
 
+    @staticmethod
+    def preprocess_fn(fn: Callable) -> str:
+        fn_src_lines = inspect.getsource(fn).split("\n")
+        indent = min(
+            sum(1 for _ in itertools.takewhile(str.isspace, line))
+            for line in fn_src_lines
+            if line
+        )
+        return "\n".join(
+            filter(
+                lambda x: not x.startswith("@"), map(lambda x: x[indent:], fn_src_lines)
+            )
+        )
+
     def to_json(self) -> Dict[int, Tuple[int, str, Tuple[str, str]]]:
         return {
             k: (
@@ -67,12 +82,7 @@ class ParseTreeActionRegister(ToJson):
                 non_terminal,
                 (
                     fn.__name__,
-                    "\n".join(
-                        filter(
-                            lambda x: not x.startswith("@"),
-                            inspect.getsource(fn).split("\n"),
-                        )
-                    ),
+                    self.preprocess_fn(fn),
                 ),
             )
             for k, (nargs, non_terminal, fn) in self.__productionToAction.items()

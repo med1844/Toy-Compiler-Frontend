@@ -29,7 +29,7 @@ class RegexOperation(ABC):
     @classmethod
     def kleene_star(cls, r: T) -> T:
         raise NotImplementedError()
-        
+
     @staticmethod
     def or_(*ops: T) -> T:
         raise NotImplementedError()
@@ -61,22 +61,28 @@ class StringRegexOperation(RegexOperation):
             for r in ranges:
                 compl_ranges.append(range(start, r.start))
                 start = r.stop
-            compl_ranges.append(range(start, 0x7f))
+            compl_ranges.append(range(start, 0x7F))
             ranges = tuple(compl_ranges)
         return cls.or_(*(cls.make_nfa(chr(i)) for r in ranges for i in r))
 
     @classmethod
     def make_dot_nfa(cls) -> str:
         # only match printable ascii characters, i.e. no unicode support
-        return cls.make_inverse_nfa("\n")  # 0x7f is not printable thus doesn't include it
+        return cls.make_inverse_nfa(
+            "\n"
+        )  # 0x7f is not printable thus doesn't include it
 
     @classmethod
     def make_inverse_nfa(cls, s: str) -> str:
-        return cls.make_range_nfa(range(cls.START, ord(s)), range(ord(s) + 1, 0x7f))
+        return cls.make_range_nfa(range(cls.START, ord(s)), range(ord(s) + 1, 0x7F))
 
     @classmethod
     def kleene_star(cls, r: str) -> str:
-        return "(%s*)" % r if len(r) == 1 or (r.startswith("(") and r.endswith(")")) else "((%s)*)" % r
+        return (
+            "(%s*)" % r
+            if len(r) == 1 or (r.startswith("(") and r.endswith(")"))
+            else "((%s)*)" % r
+        )
 
     @staticmethod
     def or_(*ops: str) -> str:
@@ -88,9 +94,16 @@ class StringRegexOperation(RegexOperation):
 
     @staticmethod
     def plus(r: str) -> str:
-        return "(%s+)" % r if len(r) == 1 or (r.startswith("(") and r.endswith(")")) else "((%s)*)" % r
+        return (
+            "(%s+)" % r
+            if len(r) == 1 or (r.startswith("(") and r.endswith(")"))
+            else "((%s)*)" % r
+        )
 
     @staticmethod
     def optional(r: str) -> str:
-        return "(%s?)" % r if len(r) == 1 or (r.startswith("(") and r.endswith(")")) else "((%s)*)" % r
-
+        return (
+            "(%s?)" % r
+            if len(r) == 1 or (r.startswith("(") and r.endswith(")"))
+            else "((%s)*)" % r
+        )

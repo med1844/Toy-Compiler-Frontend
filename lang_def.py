@@ -1,8 +1,11 @@
+import inspect
 from typing import Any, List, Dict, Set, Tuple, Deque, Callable, Iterable
 from collections import deque
+from io_utils.from_json import FromJson
+from io_utils.to_json import ToJson
 
 
-class LangDef:
+class LangDef(ToJson):
     """
     A class that captures everything that's required by a compiler front-end, with no dependency.
     This allows things to be portable, i.e. copy json files or embed them, and copy this class.
@@ -29,14 +32,13 @@ class LangDef:
         self.goto_json = goto_json
 
         # we well have to exec function definitions to make actions callable...
-        self.parse_tree_action_json: Dict[int, Tuple[int, str, Callable]] = {}
-        for prod_id, (
-            n_args,
-            non_terminal,
-            (fn_name, fn_src),
-        ) in parse_tree_action_json.items():
+        self.parse_tree_action_json: Dict[
+            int, Tuple[int, str, Tuple[str, str]]
+        ] = parse_tree_action_json
+        self.evaluated_functions: Dict[int, Callable] = {}
+        for prod_id, (_, _, (fn_name, fn_src)) in parse_tree_action_json.items():
             exec(fn_src)
-            self.parse_tree_action_json[prod_id] = (n_args, non_terminal, eval(fn_name))
+            self.evaluated_functions[prod_id] = eval(fn_name)
 
     def __match_first(self, dfa: Dict, s: Iterable[str]) -> str:
         cur_node: int = dfa["start_node"]
@@ -87,7 +89,7 @@ class LangDef:
         tokens.append((-1, "$"))
         return tokens
 
-    def parse(self, tokens: List[Tuple[int, str]], context: Dict[str, Any]=dict()):
+    def parse(self, tokens: List[Tuple[int, str]], context: Dict[str, Any] = dict()):
         # context stores all things that you wish to transfer between parses
         # examples:
         # - stored variables
@@ -102,18 +104,20 @@ class LangDef:
             current_state = state_stack[-1]
             while True:
                 if self.action_json["table"][current_state][token_type] is None:
-                    print("ERROR: %s, %s" % (current_state, token_type))
-                    exit()
-                action_type, next_state = self.action_json["table"][current_state][token_type]
+                    raise ValueError("ERROR: %s, %s" % (current_state, token_type))
+                action_type, next_state = self.action_json["table"][current_state][
+                    token_type
+                ]
                 if action_type == 0:  # shift to another state
                     state_stack.append(next_state)
                     node_stack.append(lex_str)
                     break
                 elif action_type == 1:
                     prod_id = next_state
-                    nargs, non_terminal, fn = self.parse_tree_action_json[prod_id]
+                    nargs, non_terminal, _ = self.parse_tree_action_json[prod_id]
+                    fn = self.evaluated_functions[prod_id]
                     args = []
-                    for _ in range(nargs - 1, -1, -1):
+                    for _ in range(nargs):
                         state_stack.pop()
                         args.append(node_stack.pop())
                     args.append(context)
@@ -131,3 +135,23 @@ class LangDef:
                     assert False
 
         return node_stack[-1]
+
+    def eval(self, in_: str, context: Dict[str, Any] = dict()) -> Any:
+        return self.parse(self.scan(in_), context)
+
+    def to_json(self):
+        return {
+            "dfa_list_json": self.dfa_list_json,
+            "action_json": self.action_json,
+            "goto_json": self.goto_json,
+            "parse_tree_action_json": self.parse_tree_action_json,
+        }
+
+    @classmethod
+    def from_json(cls, obj: Dict[str, Any]):
+        return cls(
+            obj["dfa_list_json"],
+            obj["action_json"],
+            obj["goto_json"],
+            obj["parse_tree_action_json"],
+        )

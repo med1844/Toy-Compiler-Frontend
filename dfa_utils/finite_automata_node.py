@@ -6,7 +6,6 @@ from io_utils.from_json import FromJson
 
 # range-based transition
 class Transition(ToJson, FromJson):
-
     def __init__(self, *ranges: range) -> None:
         self.ranges = self.__make_no_overlap(ranges)
 
@@ -19,7 +18,9 @@ class Transition(ToJson, FromJson):
         elif len(self.ranges) == 1 and self.ranges[0].stop - self.ranges[0].start == 1:
             return "-%s>" % chr(self.ranges[0].start)
         else:
-            return "-[%s]>" % "".join("%s-%s" % (chr(r.start), chr(r.stop - 1)) for r in self.ranges)
+            return "-[%s]>" % "".join(
+                "%s-%s" % (chr(r.start), chr(r.stop - 1)) for r in self.ranges
+            )
 
     def __hash__(self) -> int:
         return hash(self.ranges)
@@ -45,12 +46,20 @@ class Transition(ToJson, FromJson):
         return a.start >= b.start and a.stop <= b.stop and a.step == b.step
 
     def __le__(self, other: Self) -> bool:
-        # this type of class satisfies PartialOrd trait... but is there any 
+        # this type of class satisfies PartialOrd trait... but is there any
         # good structure for high performance grid propagation?
-        # to satisfy self <= other, for each range r in self.ranges, 
+        # to satisfy self <= other, for each range r in self.ranges,
         # it must satisfy that it's subsumed by exactly one range in other.ranges
         # maybe use bisect to do that?
-        return all(self.__le_range(r, other.ranges[bisect_right(other.ranges, r.start, key=lambda r: r.start) - 1]) for r in self.ranges)
+        return all(
+            self.__le_range(
+                r,
+                other.ranges[
+                    bisect_right(other.ranges, r.start, key=lambda r: r.start) - 1
+                ],
+            )
+            for r in self.ranges
+        )
 
     def to_json(self):
         return [(r.start, r.stop) for r in self.ranges]
@@ -79,7 +88,6 @@ class CharTransition(Transition):
 
 
 class FiniteAutomataNode(object):
-
     def __init__(self) -> None:
         self.successors: List[Tuple[Transition, "FiniteAutomataNode"]] = []
 
@@ -96,4 +104,3 @@ class FiniteAutomataNode(object):
         for _, nxt_node in self.successors:
             if nxt_node not in visited:
                 nxt_node.dfs(action, visited)
-

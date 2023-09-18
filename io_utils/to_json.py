@@ -5,4 +5,3 @@ class ToJson(ABC):
     @abstractmethod
     def to_json(self):
         pass
-

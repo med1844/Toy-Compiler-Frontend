@@ -3,8 +3,7 @@ from lang_def import LangDef
 from typeDef import TypeDefinition
 from parseTree import ParseTreeActionRegister
 from typing import Dict, Any
-import scanner
-import parser
+import json
 
 
 global d
@@ -85,7 +84,6 @@ def __assign(context: Dict[str, Any], id_: str, _: str, e: int):
 # action = Action.load(cfg, "simpleCalc/calc_action")
 # goto = Goto.load(cfg, "simpleCalc/calc_goto")
 
-scanner_dfa = typedef.get_dfa_list()
 ld = LangDef(
     list(map(lambda x: x.to_json(), typedef.get_dfa_list())),
     action.to_json(),
@@ -93,14 +91,17 @@ ld = LangDef(
     ar.to_json(),
 )
 
-d = {}
+calc_ld_json = ld.to_json()
+json.dump(calc_ld_json, open("calc.json", "w"))
 
-while True:
-    try:
-        inputString = input(">>> ")
-        print(ld.parse(ld.scan(inputString), d))
-        # pt = parser.parse(tokenList, typedef, cfg, action, goto)
-        # pt.evaluate(ar)
-
-    except EOFError:
-        break
+# d = {}
+#
+# while True:
+#     try:
+#         inputString = input(">>> ")
+#         print(ld.parse(ld.scan(inputString), d))
+#         # pt = parser.parse(tokenList, typedef, cfg, action, goto)
+#         # pt.evaluate(ar)
+#
+#     except EOFError:
+#         break

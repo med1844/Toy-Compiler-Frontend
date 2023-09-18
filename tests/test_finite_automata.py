@@ -1,4 +1,9 @@
-from dfa_utils.finite_automata_node import FiniteAutomataNode, CharTransition, EpsilonTransition, Transition
+from dfa_utils.finite_automata_node import (
+    FiniteAutomataNode,
+    CharTransition,
+    EpsilonTransition,
+    Transition,
+)
 from dfa_utils.finite_automata import FiniteAutomata
 from copy import deepcopy
 
@@ -147,6 +152,7 @@ def test_parsing_nfa_5():
 
     expected_nfa = FiniteAutomata(s, {e})
     assert hash(constructed_nfa) == hash(expected_nfa)
+
 
 def test_parsing_nfa_6():
     constructed_nfa = FiniteAutomata.from_string("(ab*(c|d)*)|(e|(f*g))")
@@ -373,9 +379,7 @@ def test_parsing_nfa_11():
 
 def test_parsing_nfa_12():
     # test \, they should help recognize *, (, ), [, ], |, +, ?, etc
-    for regex in (
-        "*", "(", ")", "[", "]", "|", "+", "?", "."
-    ):
+    for regex in ("*", "(", ")", "[", "]", "|", "+", "?", "."):
         constructed_nfa = FiniteAutomata.from_string("\\" + regex)
         n0 = FiniteAutomataNode()
         n1 = FiniteAutomataNode()
@@ -406,7 +410,14 @@ def test_parsing_nfa_16():
     constructed_nfa = FiniteAutomata.from_string(r"[a-zA-Z0-9]")
     n0 = FiniteAutomataNode()
     n1 = FiniteAutomataNode()
-    n0.add_edge(Transition(range(ord("a"), ord("z") + 1), range(ord("A"), ord("Z") + 1), range(ord("0"), ord("9") + 1)), n1)
+    n0.add_edge(
+        Transition(
+            range(ord("a"), ord("z") + 1),
+            range(ord("A"), ord("Z") + 1),
+            range(ord("0"), ord("9") + 1),
+        ),
+        n1,
+    )
     expected_nfa = FiniteAutomata(n0, {n1})
     assert hash(constructed_nfa) == hash(expected_nfa)
 
@@ -592,8 +603,8 @@ def test_dfa_8():
     constructed_dfa = FiniteAutomata.from_string(".*").determinize()
     n0 = FiniteAutomataNode()
     n1 = FiniteAutomataNode()
-    n0.add_edge(Transition(range(ord("\n")), range(ord("\n") + 1, 0x7f)), n1)
-    n1.add_edge(Transition(range(ord("\n")), range(ord("\n") + 1, 0x7f)), n1)
+    n0.add_edge(Transition(range(ord("\n")), range(ord("\n") + 1, 0x7F)), n1)
+    n1.add_edge(Transition(range(ord("\n")), range(ord("\n") + 1, 0x7F)), n1)
     expected_dfa = FiniteAutomata(n0, {n0, n1})
     assert hash(constructed_dfa) == hash(expected_dfa)
 
@@ -636,19 +647,18 @@ def test_min_dfa_1():
 
 def test_dfa_iter_0():
     dfa = FiniteAutomata.from_string("a*", minimize=True)
-    for target, expected in (
-        ("aabaaabba", "aa"),
-        ("baaaa", "")
-    ):
+    for target, expected in (("aabaaabba", "aa"), ("baaaa", "")):
         assert dfa.match_first(target) == expected
 
 
 def test_dfa_iter_1():
-    dfa = FiniteAutomata.from_string("0|(1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)*", minimize=True)
+    dfa = FiniteAutomata.from_string(
+        "0|(1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)*", minimize=True
+    )
     for target, expected in (
         ("10872865 168505", "10872865"),
         ("010101", "0"),
-        ("7950X3D", "7950")
+        ("7950X3D", "7950"),
     ):
         assert dfa.match_first(target) == expected
 
@@ -659,7 +669,7 @@ def test_dfa_iter_2():
         ("FiniteAutomata.from_string('a*')", "FiniteAutomata"),
         ("__init__(self)", "__init__"),
         ("n7.add_edge(CharTransition('b'), n7)", "n7"),
-        ("1 + 2", "")
+        ("1 + 2", ""),
     ):
         assert dfa.match_first(target) == expected
 
@@ -670,7 +680,7 @@ def test_dfa_iter_3():
     for target, expected in (
         ("/* ([a-zA-Z]|_)([a-zA-Z0-9]|_)* */", "/* ([a-zA-Z]|_)([a-zA-Z0-9]|_)* */"),
         ("/*comment*/?ok", "/*comment*/"),
-        ("int i = 0; /* initialize index var */", "")
+        ("int i = 0; /* initialize index var */", ""),
     ):
         assert dfa.match_first(target) == expected
 
@@ -720,9 +730,22 @@ def test_dfa_rev_edge_1():
 
 
 def test_split_by():
-    assert FiniteAutomata.split_by(range(1, 100), [5, 6, 10, 14, 20, 50, 98]) == [range(1, 5), range(5, 6), range(6, 10), range(10, 14), range(14, 20), range(20, 50), range(50, 98), range(98, 100)]
-    assert FiniteAutomata.split_by(range(50, 100), [2, 7, 13, 29, 67, 83, 127, 149, 193]) == [range(50, 67), range(67, 83), range(83, 100)]
-    assert FiniteAutomata.split_by(range(20, 30), [5, 11, 19, 31, 41, 47]) == [range(20, 30)]
+    assert FiniteAutomata.split_by(range(1, 100), [5, 6, 10, 14, 20, 50, 98]) == [
+        range(1, 5),
+        range(5, 6),
+        range(6, 10),
+        range(10, 14),
+        range(14, 20),
+        range(20, 50),
+        range(50, 98),
+        range(98, 100),
+    ]
+    assert FiniteAutomata.split_by(
+        range(50, 100), [2, 7, 13, 29, 67, 83, 127, 149, 193]
+    ) == [range(50, 67), range(67, 83), range(83, 100)]
+    assert FiniteAutomata.split_by(range(20, 30), [5, 11, 19, 31, 41, 47]) == [
+        range(20, 30)
+    ]
     assert FiniteAutomata.split_by(range(20, 30), [30]) == [range(20, 30)]
 
 
@@ -741,8 +764,12 @@ def test_determinize_split_by_0():
     n0.add_edge(EpsilonTransition(), n5)
 
     n1.add_edge(Transition(range(ord("c"), ord("e") + 1)), n2)
-    n3.add_edge(Transition(range(ord("b"), ord("c") + 1), range(ord("e"), ord("e") + 1)), n4)
-    n5.add_edge(Transition(range(ord("c"), ord("c") + 1), range(ord("f"), ord("f") + 1)), n6)
+    n3.add_edge(
+        Transition(range(ord("b"), ord("c") + 1), range(ord("e"), ord("e") + 1)), n4
+    )
+    n5.add_edge(
+        Transition(range(ord("c"), ord("c") + 1), range(ord("f"), ord("f") + 1)), n6
+    )
 
     n2.add_edge(EpsilonTransition(), n7)
     n4.add_edge(EpsilonTransition(), n7)
@@ -766,4 +793,3 @@ def test_determinize_split_by_0():
     expected_dfa = FiniteAutomata(n0135, {n27, n47, n247, n67, n2467})
 
     assert hash(constructed_dfa) == hash(expected_dfa)
-

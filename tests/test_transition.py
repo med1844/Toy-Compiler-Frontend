@@ -23,7 +23,14 @@ def test_char_transition():
 
 
 def test_make_unique():
-    a = Transition(range(1, 2), range(1, 10), range(11, 12), range(12, 14), range(30, 35), range(28, 32))
+    a = Transition(
+        range(1, 2),
+        range(1, 10),
+        range(11, 12),
+        range(12, 14),
+        range(30, 35),
+        range(28, 32),
+    )
     assert a.ranges == ((range(1, 10), range(11, 14), range(28, 35)))
 
 
@@ -33,7 +40,9 @@ def test_transition_partial_ord():
         (Transition(range(5, 6)), Transition(range(5, 7))),
         (Transition(range(5, 6)), Transition(range(4, 6))),
         (Transition(range(5, 8)), Transition(range(3, 6), range(6, 10))),
-        (Transition(range(5, 8), range(6, 12), range(37, 50), range(99, 125)), Transition(range(128)))
+        (
+            Transition(range(5, 8), range(6, 12), range(37, 50), range(99, 125)),
+            Transition(range(128)),
+        ),
     ):
         assert a <= b
-

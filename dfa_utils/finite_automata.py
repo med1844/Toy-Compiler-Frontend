@@ -22,12 +22,17 @@ class FANodeClosure:
         return hash(tuple(sorted((node for node in self.closure), key=id)))
 
     def __eq__(self, other: Self) -> bool:
-        return self.closure == other.closure  # that's the same set of nodes, simply compare the set equivalence
+        return (
+            self.closure == other.closure
+        )  # that's the same set of nodes, simply compare the set equivalence
 
 
 class FiniteAutomata(ToJson):
-
-    def __init__(self, start_node: FiniteAutomataNode, accept_states: Set[FiniteAutomataNode] = set()) -> None:
+    def __init__(
+        self,
+        start_node: FiniteAutomataNode,
+        accept_states: Set[FiniteAutomataNode] = set(),
+    ) -> None:
         self.start_node = start_node
         self.accept_states = accept_states
 
@@ -108,7 +113,9 @@ class FiniteAutomata(ToJson):
             start_closure: FiniteAutomataNode()
         }
         # now we have to consider how to merge accept actions
-        contains_accept_state = lambda fa_closure: any(node in self.accept_states for node in fa_closure.closure)
+        contains_accept_state = lambda fa_closure: any(
+            node in self.accept_states for node in fa_closure.closure
+        )
         accept_states = set()
         if contains_accept_state(start_closure):
             accept_states.add(start_closure)
@@ -121,10 +128,18 @@ class FiniteAutomata(ToJson):
 
             # use scan line algo to generate the correct range to the set of reachable nodes mapping
             # please take a look at test_finite_automata.py:test_determinize_split_by_0 for more information
-            all_ranges: List[Tuple[range, FiniteAutomataNode]] = [(r, nxt_node) for cur_node in cur.closure for t, nxt_node in cur_node.successors for r in t.ranges]
+            all_ranges: List[Tuple[range, FiniteAutomataNode]] = [
+                (r, nxt_node)
+                for cur_node in cur.closure
+                for t, nxt_node in cur_node.successors
+                for r in t.ranges
+            ]
             all_ranges.sort(key=lambda k: (k[0].start, k[0].stop))
             range_to_nodes: Dict[range, List[FiniteAutomataNode]] = {}
-            splits = sorted(set(map(lambda k: k[0].start, all_ranges)) | set(map(lambda k: k[0].stop, all_ranges)))
+            splits = sorted(
+                set(map(lambda k: k[0].start, all_ranges))
+                | set(map(lambda k: k[0].stop, all_ranges))
+            )
             for r, n in all_ranges:
                 for sub_r in self.split_by(r, splits):
                     range_to_nodes.setdefault(sub_r, list()).append(n)
@@ -132,7 +147,9 @@ class FiniteAutomata(ToJson):
             # aggregate transitions that points to the same finite automata node sets
             nodes_to_ranges: Dict[Tuple[FiniteAutomataNode, ...], List[range]] = {}
             for range_, nxts in range_to_nodes.items():
-                nodes_to_ranges.setdefault(tuple(sorted(nxts, key=id)), list()).append(range_)
+                nodes_to_ranges.setdefault(tuple(sorted(nxts, key=id)), list()).append(
+                    range_
+                )
 
             for nxts, ranges in nodes_to_ranges.items():
                 cond = Transition(*ranges)
@@ -143,7 +160,9 @@ class FiniteAutomata(ToJson):
                     if contains_accept_state(nxt_closure):
                         accept_states.add(nxt_closure)
                 closure_to_node[cur].add_edge(cond, closure_to_node[nxt_closure])
-        return type(self)(closure_to_node[start_closure], {closure_to_node[c] for c in accept_states})
+        return type(self)(
+            closure_to_node[start_closure], {closure_to_node[c] for c in accept_states}
+        )
 
     def reverse_edge(self) -> Self:
         # create a new FiniteAutomata with all edges reversed.
@@ -168,7 +187,9 @@ class FiniteAutomata(ToJson):
                     first_pass_que.append(nxt_node)
 
         # from old nodes to new nodes in the new edge reversed NFA
-        node_map: Dict[FiniteAutomataNode, FiniteAutomataNode] = {old_node: FiniteAutomataNode() for old_node in edges.keys()}
+        node_map: Dict[FiniteAutomataNode, FiniteAutomataNode] = {
+            old_node: FiniteAutomataNode() for old_node in edges.keys()
+        }
         for src_node, successors in edges.items():
             for cond, nxt_node in successors:
                 node_map[nxt_node].add_edge(cond, node_map[src_node])
@@ -187,7 +208,11 @@ class FiniteAutomata(ToJson):
         return self.reverse_edge().determinize().reverse_edge().determinize()
 
     def __deepcopy__(self, memo=None) -> Self:
-        def dfs(cur_node: FiniteAutomataNode, node_mapping: Dict[FiniteAutomataNode, FiniteAutomataNode], visited: Set[FiniteAutomataNode]):
+        def dfs(
+            cur_node: FiniteAutomataNode,
+            node_mapping: Dict[FiniteAutomataNode, FiniteAutomataNode],
+            visited: Set[FiniteAutomataNode],
+        ):
             if cur_node in visited:
                 return
             visited.add(cur_node)
@@ -200,7 +225,9 @@ class FiniteAutomata(ToJson):
 
         mappings = {self.start_node: FiniteAutomataNode()}
         dfs(self.start_node, mappings, set())
-        return type(self)(mappings[self.start_node], {mappings[node] for node in self.accept_states})
+        return type(self)(
+            mappings[self.start_node], {mappings[node] for node in self.accept_states}
+        )
 
     @classmethod
     def from_string(cls, regex: str, determinize=False, minimize=False) -> Self:
@@ -260,7 +287,9 @@ class FiniteAutomata(ToJson):
 
         second_pass_que: Deque[FiniteAutomataNode] = deque()
         for node, edge in edges.items():
-            if node in self.accept_states and all(visit_order[nxt_node] <= visit_order[node] for _, nxt_node in edge):
+            if node in self.accept_states and all(
+                visit_order[nxt_node] <= visit_order[node] for _, nxt_node in edge
+            ):
                 second_pass_que.append(
                     node
                 )  # current node is a sink node: no out edge, or all out edges are back edges
@@ -335,15 +364,19 @@ class FiniteAutomata(ToJson):
         ):
             nonlocal node_id, edges
             for (cond, nxt_node) in cur_node.successors:
-                edges.setdefault(node_id[cur_node], list()).append((cond.to_json(), node_id[nxt_node]))
+                edges.setdefault(node_id[cur_node], list()).append(
+                    (cond.to_json(), node_id[nxt_node])
+                )
 
         self.start_node.dfs(update_edges, set())
 
         return {
             "num_node": len(node_id),
             "start_node": node_id[self.start_node],
-            "accept_states": sorted(map(lambda node: node_id[node], self.accept_states)),
-            "edges": edges
+            "accept_states": sorted(
+                map(lambda node: node_id[node], self.accept_states)
+            ),
+            "edges": edges,
         }
 
 
@@ -365,7 +398,7 @@ class NFANodeRegexOperation(RegexOperation):
             for r in ranges:
                 compl_ranges.append(range(start, r.start))
                 start = r.stop
-            compl_ranges.append(range(start, 0x7f))
+            compl_ranges.append(range(start, 0x7F))
             ranges = tuple(compl_ranges)
         s = FiniteAutomataNode()
         e = FiniteAutomataNode()
@@ -375,11 +408,13 @@ class NFANodeRegexOperation(RegexOperation):
     @classmethod
     def make_dot_nfa(cls) -> FiniteAutomata:
         # only match printable ascii characters, i.e. no unicode support
-        return cls.make_inverse_nfa("\n")  # 0x7f is not printable thus doesn't include it
+        return cls.make_inverse_nfa(
+            "\n"
+        )  # 0x7f is not printable thus doesn't include it
 
     @classmethod
     def make_inverse_nfa(cls, s: str) -> FiniteAutomata:
-        return cls.make_range_nfa(range(cls.START, ord(s)), range(ord(s) + 1, 0x7f))
+        return cls.make_range_nfa(range(cls.START, ord(s)), range(ord(s) + 1, 0x7F))
 
     @classmethod
     def kleene_star(cls, r: FiniteAutomata) -> FiniteAutomata:
@@ -434,7 +469,9 @@ class NFANodeRegexOperation(RegexOperation):
 
 def parse(r: Deque[str], regex_operation: RegexOperation):
     # op priority: {*, +} > concat > or
-    ops = deque()  # operands, but doesn't consider "|" operators. We must first concatenate everything before "|" them
+    ops = (
+        deque()
+    )  # operands, but doesn't consider "|" operators. We must first concatenate everything before "|" them
     or_ops = deque()
 
     def reduce_concat():
@@ -478,7 +515,9 @@ def parse(r: Deque[str], regex_operation: RegexOperation):
                 if r[0] == "]":
                     r.popleft()
                     break
-            ops.append(regex_operation.make_range_nfa(*ranges, complementary=complementary))
+            ops.append(
+                regex_operation.make_range_nfa(*ranges, complementary=complementary)
+            )
         elif s == ".":
             ops.append(regex_operation.make_dot_nfa())
         elif len(s) == 1:
@@ -489,4 +528,3 @@ def parse(r: Deque[str], regex_operation: RegexOperation):
         or_ops.append(reduce_concat())
     l = regex_operation.or_(*or_ops)
     return l
-
