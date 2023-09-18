@@ -25,7 +25,7 @@ class LangDef(ToJson):
         dfa_list_json: List[Dict],
         action_json: Dict,
         goto_json: Dict,
-        parse_tree_action_json: Dict[int, Tuple[int, str, Tuple[str, str]]],
+        parse_tree_action_json: Dict[str, Tuple[int, str, Tuple[str, str]]],
     ):
         self.dfa_list_json = dfa_list_json
         self.action_json = action_json
@@ -33,16 +33,16 @@ class LangDef(ToJson):
 
         # we well have to exec function definitions to make actions callable...
         self.parse_tree_action_json: Dict[
-            int, Tuple[int, str, Tuple[str, str]]
+            str, Tuple[int, str, Tuple[str, str]]
         ] = parse_tree_action_json
-        self.evaluated_functions: Dict[int, Callable] = {}
+        self.evaluated_functions: Dict[str, Callable] = {}
         for prod_id, (_, _, (fn_name, fn_src)) in parse_tree_action_json.items():
             exec(fn_src)
             self.evaluated_functions[prod_id] = eval(fn_name)
 
     def __match_first(self, dfa: Dict, s: Iterable[str]) -> str:
-        cur_node: int = dfa["start_node"]
-        accept_states: Set[int] = set(dfa["accept_states"])
+        cur_node: str = dfa["start_node"]
+        accept_states: Set[str] = set(dfa["accept_states"])
         buffer = []
         accepted_buffer = []
         for c in s:
@@ -50,17 +50,16 @@ class LangDef(ToJson):
             if cur_node in accept_states:
                 accepted_buffer.extend(buffer)
                 buffer.clear()
-            if cur_node in dfa["edges"]:
-                for cond, nxt_node in dfa["edges"][cur_node]:
-                    # cond: List[Tuple[int, int]]
-                    # nxt_node: int
-                    if not cond or any(
-                        l <= ord(c) < r for l, r in cond
-                    ):  # TODO: use bisect_right - 1
-                        buffer.append(c)
-                        cur_node = nxt_node
-                        any_hit = True
-                        break
+            for cond, nxt_node in dfa["edges"].get(str(cur_node), ()):
+                # cond: List[Tuple[int, int]]
+                # nxt_node: int
+                if not cond or any(
+                    l <= ord(c) < r for l, r in cond
+                ):  # TODO: use bisect_right - 1
+                    buffer.append(c)
+                    cur_node = nxt_node
+                    any_hit = True
+                    break
             if not any_hit:
                 break
         if cur_node in accept_states:
@@ -81,7 +80,8 @@ class LangDef(ToJson):
         deque_s = deque(s)
         while deque_s:
             (id, word) = parse_one_word(self.dfa_list_json, deque_s)
-            tokens.append((id, word))
+            if word:
+                tokens.append((id, word))
             for _ in range(len(word)):
                 deque_s.popleft()
             while deque_s and deque_s[0] in {" ", "\t", "\n"}:
@@ -103,19 +103,19 @@ class LangDef(ToJson):
         for token_type, lex_str in tokens:
             current_state = state_stack[-1]
             while True:
-                if self.action_json["table"][current_state][token_type] is None:
-                    raise ValueError("ERROR: %s, %s" % (current_state, token_type))
+                if self.action_json["table"][current_state][str(token_type)] is None:
+                    raise ValueError("ERROR: %s, %s" % (current_state, str(token_type)))
                 action_type, next_state = self.action_json["table"][current_state][
-                    token_type
+                    str(token_type)
                 ]
                 if action_type == 0:  # shift to another state
                     state_stack.append(next_state)
                     node_stack.append(lex_str)
                     break
                 elif action_type == 1:
-                    prod_id = next_state
-                    nargs, non_terminal, _ = self.parse_tree_action_json[prod_id]
-                    fn = self.evaluated_functions[prod_id]
+                    prod_id: int = next_state
+                    nargs, non_terminal, _ = self.parse_tree_action_json[str(prod_id)]
+                    fn = self.evaluated_functions[str(prod_id)]
                     args = []
                     for _ in range(nargs):
                         state_stack.pop()

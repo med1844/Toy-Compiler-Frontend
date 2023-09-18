@@ -15,11 +15,6 @@ action, goto = gen_action_todo(cfg)
 ar = ProductionFnRegister(cfg)
 
 
-@ar.production("Statement -> E", "Statement -> Assignment")
-def __stmt(_c, eval_result: int) -> int:
-    return eval_result
-
-
 @ar.production("E -> E + T")
 def __e0(_c, e: int, _: str, t: int):
     return e + t
@@ -94,14 +89,3 @@ ld = LangDef(
 calc_ld_json = ld.to_json()
 json.dump(calc_ld_json, open("calc.json", "w"))
 
-# d = {}
-#
-# while True:
-#     try:
-#         inputString = input(">>> ")
-#         print(ld.parse(ld.scan(inputString), d))
-#         # pt = parser.parse(tokenList, typedef, cfg, action, goto)
-#         # pt.evaluate(ar)
-#
-#     except EOFError:
-#         break

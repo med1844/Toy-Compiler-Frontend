@@ -7,7 +7,7 @@ import itertools
 
 class ProductionFnRegister(ToJson):
     def __init__(self, cfg: ContextFreeGrammar):
-        self.__production_to_action: Dict[int, Tuple[int, str, Callable]] = {}
+        self.__production_to_action: Dict[str, Tuple[int, str, Callable]] = {}
         self.__cfg = cfg
 
     def production(self, *productions: str):
@@ -23,7 +23,7 @@ class ProductionFnRegister(ToJson):
             for prod in productions:
                 prod_id = self.__cfg.raw_grammar_to_id[prod]
                 non_terminal, seq = self.__cfg.get_production(prod_id)
-                self.__production_to_action[prod_id] = (
+                self.__production_to_action[str(prod_id)] = (
                     sum(map(lambda *_: 1, filter(lambda x: x != "''", seq))),
                     non_terminal,
                     function,
@@ -49,7 +49,7 @@ class ProductionFnRegister(ToJson):
             )
         )
 
-    def to_json(self) -> Dict[int, Tuple[int, str, Tuple[str, str]]]:
+    def to_json(self) -> Dict[str, Tuple[int, str, Tuple[str, str]]]:
         return {
             k: (
                 nargs,

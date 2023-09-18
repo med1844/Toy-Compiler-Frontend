@@ -461,9 +461,10 @@ class LRItemSet:
 class Action(ToJson):
     def __init__(self, cfg: ContextFreeGrammar, stateCount: int, table=None):
         self.state_count = stateCount
-        self.table: List[Dict[int, Optional[Tuple[int, int]]]] = (
+        self.terminals = cfg.terminals | {cfg.EOF}
+        self.table: List[Dict[str, Optional[Tuple[int, int]]]] = (
             [
-                {k: None for k in cfg.terminals | {cfg.EOF}}
+                {}
                 for _ in range(self.state_count)
             ]
             if table is None
@@ -478,7 +479,7 @@ class Action(ToJson):
         fmt = [len(str(_)) for _ in terminals]
         for i in range(self.state_count):
             for j, k in enumerate(terminals):
-                fmt[j] = max(fmt[j], len(str(self.table[i][k])))
+                fmt[j] = max(fmt[j], len(str(self.table[i].get(str(k), None))))
         str_fmt = list(map(lambda v: "%%%ds" % v, fmt))
         result = []
         result.append(
@@ -489,7 +490,7 @@ class Action(ToJson):
                 "\t".join(
                     [str(i)]
                     + [
-                        str_fmt[j] % str(self.table[i][k])
+                        str_fmt[j] % str(self.table[i].get(str(k), None))
                         for j, k in enumerate(terminals)
                     ]
                 )
@@ -504,18 +505,6 @@ class Action(ToJson):
 
     def __len__(self):
         return self.state_count
-
-    @property
-    def terminals(self):
-        return sorted(self.table[0].keys())
-
-    def get_head(self):
-        return ["state"] + [str(k) for k in self.terminals]
-
-    def get_row(self, i):
-        return [str(i)] + [
-            str(self.table[i][k]) for k in sorted(self.table[0].keys(), key=str)
-        ]
 
     def to_json(self):
         return {"state_count": self.state_count, "table": self.table}
@@ -545,8 +534,9 @@ class Goto(ToJson):
         table: Optional[List[Dict[str, Any]]] = None,
     ):
         self.state_count = state_count
+        self.non_terminals = cfg.non_terminals
         self.table: List[Dict[str, Optional[int]]] = (
-            [{k: None for k in cfg.non_terminals} for _ in range(self.state_count)]
+            [{} for _ in range(self.state_count)]
             if table is None
             else table
         )
@@ -559,7 +549,7 @@ class Goto(ToJson):
         fmt = [len(str(_)) for _ in non_terminals]
         for i in range(self.state_count):
             for j, k in enumerate(non_terminals):
-                fmt[j] = max(fmt[j], len(str(self.table[i][k])))
+                fmt[j] = max(fmt[j], len(str(self.table[i].get(k, None))))
         str_fmt = list(map(lambda v: "%%%ds" % v, fmt))
         result = []
         result.append(
@@ -572,7 +562,7 @@ class Goto(ToJson):
                 "\t".join(
                     [str(i)]
                     + [
-                        str_fmt[j] % str(self.table[i][k])
+                        str_fmt[j] % str(self.table[i].get(k, None))
                         for j, k in enumerate(non_terminals)
                     ]
                 )
@@ -584,16 +574,6 @@ class Goto(ToJson):
 
     def __len__(self):
         return self.state_count
-
-    @property
-    def non_terminals(self):
-        return sorted(self.table[0].keys())
-
-    def get_head(self):
-        return ["state"] + [str(k) for k in self.non_terminals]
-
-    def get_row(self, i):
-        return [str(i)] + [str(self.table[i][k]) for k in self.non_terminals]
 
     def to_json(self):
         return {"state_count": self.state_count, "table": self.table}
@@ -659,7 +639,7 @@ def gen_action_todo(cfg: ContextFreeGrammar) -> Tuple[Action, Goto]:
         for step, dst in v:
             # src, step, dst forms a full edge. note that src and dst are int.
             if cfg.is_terminal(step):
-                action[src][step] = (0, dst)  # 0 means Shift
+                action[src][str(step)] = (0, dst)  # 0 means Shift
             elif cfg.is_non_terminal(step):
                 goto[src][step] = dst
 
@@ -668,9 +648,9 @@ def gen_action_todo(cfg: ContextFreeGrammar) -> Tuple[Action, Goto]:
             if item.at_end(cfg):
                 for sym in item.look_forward:
                     if item.production_id:
-                        action[v][sym] = (1, item.production_id)  # 1 means Reduce
+                        action[v][str(sym)] = (1, item.production_id)  # 1 means Reduce
                     else:
-                        action[v][sym] = (2, None)  # 2 means Accept
+                        action[v][str(sym)] = (2, None)  # 2 means Accept
     return action, goto
 
 

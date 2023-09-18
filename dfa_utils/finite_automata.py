@@ -357,16 +357,16 @@ class FiniteAutomata(ToJson):
         self.start_node.dfs(update_counter, set())
 
         # {src: [(condition, dst), ...]}
-        edges: Dict[int, List[Tuple[Any, int]]] = {}
+        edges: Dict[str, List[Tuple[Any, int]]] = {}
 
         def update_edges(
             cur_node: FiniteAutomataNode,
         ):
             nonlocal node_id, edges
             for (cond, nxt_node) in cur_node.successors:
-                edges.setdefault(node_id[cur_node], list()).append(
+                edges.setdefault(str(node_id[cur_node]), list()).append(
                     (cond.to_json(), node_id[nxt_node])
-                )
+                )  # use str in key to make sure it fits json.dump behavior
 
         self.start_node.dfs(update_edges, set())
 
