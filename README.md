@@ -6,162 +6,142 @@ On top of these, I implemented a compiler that translate an experimental languag
 
 ## How to use
 
-### Create Action & Goto and save them
+First, you should provide regex definition of tokens, and the context free grammar of your language.
 
-1. write TypeDefinition files that define matching rules of different type of tokens.
-2. write CFG files that define the Context Free Grammar you want to use.
-3. Load them.
-4. use `parser.genActionGoto` to generate Action & Goto table.
+For demonstration purpose, here I will define a language that describes a subset of all possible arithmetic expressions:
 
 ```python
-typedef = TypeDefinition.load("TYPEDEF")
-cfg = ContextFreeGrammar.load(typedef, "CFG")
-action, goto = parser.genActionGoto(typedef, cfg)
-action.save('ACTION')
-goto.save('GOTO')
+from typeDef import TypeDefinition
+from cfg import ContextFreeGrammar
+
+
+typedef = TypeDefinition()
+typedef.add_definition("+", r"\+")
+typedef.add_definition("-", r"-")
+typedef.add_definition("*", r"\*")
+typedef.add_definition("(", r"\(")
+typedef.add_definition(")", r"\)")
+typedef.add_definition("int_const", r"0|(-?)[1-9][0-9]*")
+cfg = ContextFreeGrammar.from_string(
+    typedef,
+    """
+    START -> E
+    E -> E + T | E - T | T
+    T -> T * F | F
+    F -> ( E ) | int_const
+    """,
+)
 ```
 
-The format of typeDef and CFG files are described in `typeDef.py` and `cfg.py`, and examples are available in `/simpleCalc`, `/simpleJava`, and `/simpleSQL`.
-
-### Use scanner and Action & Goto to parse input string
-
-1. read input.
-2. use `scanner.parse` to split tokens.
-3. use `parser.parse` to get `ParseTree`.
+Then, you need to build a `LangDef` object through `LangDefFactory`:
 
 ```python
-action = Action.load(cfg, "ACTION")
-goto = Goto.load(cfg, "GOTO")
+from lang_def_factory import LangDefFactory
 
-with open("SOURCE", "r") as f:
-    src = f.read()
-tokenList = scanner.parse(typedef, src, ['line_comment', 'block_comment', 'space'])
-pt = parser.parse(tokenList, typedef, cfg, action, goto)
+ld = LangDefFactory.new(typedef, cfg)
 ```
 
-### Use ParseTree to evaluate attribute grammars
+`ld` stores all information required to parse the language you defined.
 
-Simple attribute grammar is supported by `ParseTreeActionRegister`.
-
-Use decorators to create link between productions and functions:
+You could then define **actions** that should be executed when a production was recognized by decorating `ld`:
 
 ```python
-ar = ParseTreeActionRegister(cfg)
+@ld.production("E -> T", "T -> F")
+def __identity(_, e: int) -> int:
+    return e
 
-@ar.production('F -> F ** G')
-def __f0(f, f1, _, g):
-    f.val = f1.val ** g.val
+@ld.production("E -> E + T")
+def __add(_, e: int, _p: str, t: int) -> int:
+    return e + t
 
-@ar.production('G -> ( E )')
-def __g0(g, leftPar, e, rightPar):
-    g.val = e.val
+@ld.production("E -> E - T")
+def __sub(_, e: int, _m: str, t: int) -> int:
+    return e - t
 
-@ar.production('G -> int_const')
-def __g1(g, int_const):
-    g.val = int(int_const.getContent())
+@ld.production("T -> T * F")
+def __mul(_, t: int, _m: str, f: int) -> int:
+    return t * f
 
-@ar.production('G -> id')
-def __g2(g, id_):
-    global d
-    g.val = d[id_.getContent()]
+@ld.production("F -> ( E )")
+def __par(_, _l, e: int, _r) -> int:
+    return e
+
+@ld.production("F -> int_const")
+def __int(_, int_const: str) -> int:
+    return int(int_const)
 ```
 
-The example above shows how to evaluate values using attribute grammars. You can also use them to build AST:
+You can now host a calculator using a few lines:
 
 ```python
-@par.production("FunctionCall -> id ( ParamList )")
-def _func0(func, id_, lp, pal, rp):
-    func.node = ASTNode("functionCall", ASTNode(id_.getContent(), actionID="noAction"), pal.node)
-
-@par.production("ParamList -> ParamList , Param")
-def _pal0(paraml, paraml0, comma, param):
-    paraml.node = paraml0.node
-    paraml.node.addChild(param.node)
-
-@par.production("ParamList -> Param")
-def _pal1(paraml, param):
-    paraml.node = ASTNode("parameterList", param.node)
-
-@par.production("ParamList -> ''")
-def _pal2(paraml):
-    paraml.node = ASTNode("parameterList")
+while True:
+    try:
+        print(ld.eval(input(">>> "), {}))
+    except EOFError:
+        break
 ```
 
-It is also possible to use `ParseTree` to generate other intermediate representations.
+You should get a working calculator:
 
-### Define action on each AST node
+```
+> python test_calc.py
+>>> 5 + 6 * 7 - (8 - 9 * 10)
+129
+>>> (5 + 6) * 7 - 8 - 9 * 10
+-21
+>>>
+```
 
-Similar to `ParseTreeActionRegister.production`, use `ASTActionRegister.action` to map an actionID to a function.
+## Portability
 
-Each `ASTNode` has an actionID for performing actions. By default, actionID equals to the content:
+You don't have to always copy & paste heavy dependencies such as `TypeDefinition`, `ContextFreeGrammar`, and `dfa_utils` when you need to use them.
+
+If you want to use a parser in your project, you only need to copy `lang_def.py`, where all transition tables are stored, and all parsing algorithms are defined.
+
+You can do this by calling `ld.to_json()`. This would dump all internal transition tables into a single `LangDef`.
+
+Notice that associated action functions would not be saved. You must manually define them after you loaded `LangDef` using `LangDef.from_json()`.
+
+For example:
 
 ```python
-class ASTNode(TreeNode):
+import json
+from lang_def import LangDef
 
-    def __init__(self, content, *childs, actionID=None):
-        if actionID is None:
-            actionID = content
+ld = LangDef.from_json(json.load(open("calc_v2.json", "r")))
+
+@ld.production("E -> E + T")
+def __e0(_c, e: int, _: str, t: int):
+    return e + t
+
+@ld.production("E -> E - T")
+def __e1(_c, e: int, _: str, t: int):
+    return e - t
+
+@ld.production("E -> T")
+def __e2(_c, b):
+    return b
+
+@ld.production("E -> - T")
+def __e3(_c, _: str, t: int):
+    return -t
+
+@ld.production("T -> ( E )")
+def __g0(_, _leftPar: str, e: int, _rightPar: str):
+    return e
+
+@ld.production("T -> int_const")
+def __g1(_, int_const: str):
+    return int(int_const)
+
+while True:
+    try:
+        print(ld.eval(input(">>> "), {}))
+    except EOFError:
+        break
 ```
 
-But if the `actionID` parameter is set, then the `ASTNode` would not replace it with content.
-
-Then just use `ASTActionRegister.action` to decorate functions:
-
-```python
-@aar.action("add")
-def _add(add, l, r):
-    add.cb.addILOC("push", "eax")
-    add.cb.addILOC("mov", "eax", r.var.getOP())
-    add.cb.addILOC("add", "eax", l.var.getOP())
-    add.var = Variable(getTempVarName(), getType(l, r), add.ns)
-    add.cb.addILOC("mov", add.var.getOP(), "eax")
-    add.cb.addILOC("pop", "eax")
-```
-
-## About simpleJava
-
-This is a small experimental language.
-
-When I design it, I hope it can support class definition and methods like java, while you can still write code in the biggest scope. That is to say, there is no need to declare a class and write a `public static void main(String[] args)` method to make the code run.
-
-I also hope it can offer friendly learning experience that python does. Builtin functions like `print`, `open`, `with` are just awesome.
-
-But I found such ideas are super hard to implement in assembly language. The more code I wrote, the harder it became to maintain. Eventually I decided to give up and enjoy the last several days of my winter vacation.
-
-Now simpleJava supports:
-
-- integer constant and string literal
-- print (using _printf)
-- integer variable declaration (only integer)
-- variable assignment, basic arithmatics (+, -, *, /, %, etc) and conditions (and, or, not, ==, !=, etc)
-- `if`, `else`, `while`, `for`
-- `continue`, `break`
-- function declaration with integer return value
-
-The rest rules are just the same as `java` and `C`. See test source files in `/simpleJava` for examples.
-
-### About planned features
-
-I planned to add these important features. However, I finally decided to give up:
-
-- Heap memory allocation (`int## table = new int[x][y]`)
-- `input` function like python
-- class definition
-- iterators and auto unpacking (like C++17: `for (int [x, y] : points)`)
-
-### How to compile and run
-
-I have only tested this compiler on windows 10, 64 bit, python 3.7.5. The code it produces may not be able to run on other platforms.
-
-Since this is just a compiler test, I decided not to use tools that parse command line options, so it maybe hard to use.
-
-1. install nasm, minGW, and configure PATH.
-2. write your `.sjava` file and save it as FILENAME.sjava.
-3. change line 392 in `simpleJavaCompiler.py`, open the file you just saved.
-4. `python simpleJavaCompiler.py > FILENAME.asm`
-5. `nasm -f win32 FILENAME.asm`
-6. `gcc FILENAME.obj -o FILENAME.exe`
-7. `FILENAME.exe`
+This would allow you avoid rebuilding transition tables from definitions each time, which could be time-consuming when the definition is too large.
 
 ## Planned improvements
 
@@ -182,10 +162,11 @@ Since this is just a compiler test, I decided not to use tools that parse comman
   - [x] Write a hash function that encodes the structural information of arbitrary finite automata for auto tests
   - [x] Implement a lexer that's based on DFA
   - [x] Add FA serialization & de-serialization
-- [ ] Migrate to typed python
+  - [ ] Add accept state id propagation & merge for faster scanning
+- [x] Migrate to typed python
 - [ ] Make parser a module
-- [ ] Optimize parser memory usage by eliminating building actual parse tree
-- [ ] Add unit tests for each module
+- [x] Optimize parser memory usage by eliminating building actual parse tree
+- [x] Add unit tests for each module
 - [ ] Define interfaces for CFG parser & implement other parsers (LL1, etc)
 - [ ] Move `simpleSQL` and `simpleJava` to other repositories
   - [ ] For `simpleSQL`, implement an operator-based sql engine in a separate project
