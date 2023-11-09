@@ -1,8 +1,10 @@
 out
 __pycache__/*
+__pycache__
 in
 .vscode/*
 */__pycache__/*
+*/__pycache__
 *.exe
 *.obj
 .venv
