@@ -181,7 +181,7 @@ Since this is just a compiler test, I decided not to use tools that parse comman
     - [x] Add tests
   - [x] Write a hash function that encodes the structural information of arbitrary finite automata for auto tests
   - [x] Implement a lexer that's based on DFA
-  - [ ] Add FA serialization & de-serialization
+  - [x] Add FA serialization & de-serialization
 - [ ] Migrate to typed python
 - [ ] Make parser a module
 - [ ] Optimize parser memory usage by eliminating building actual parse tree

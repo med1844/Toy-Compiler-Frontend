@@ -1,9 +1,12 @@
+from dataclasses import dataclass
+from typing import Optional
 from lang_def import LangDef
+from lang_def_factory import LangDefFactory
 from typeDef import TypeDefinition
-from cfg import ContextFreeGrammar, gen_action_todo
-from production_fn_register import ProductionFnRegister
+from cfg import ContextFreeGrammar
 import pytest
-from random import randint
+from random import randint, shuffle
+from operator import add, sub, mul
 
 
 def test_ld_scanner_0():
@@ -11,7 +14,7 @@ def test_ld_scanner_0():
     typedef = TypeDefinition()
     typedef.add_definition("mut", "mut")
     typedef.add_definition("identifier", "([a-zA-Z]|_)([0-9a-zA-Z]|_)*")
-    ld = LangDef(list(map(lambda x: x.to_json(), typedef.get_dfa_list())), {}, {}, {})
+    ld = LangDef(list(map(lambda x: x.to_json(), typedef.get_dfa_list())), {}, {}, {}, {})
     assert ld.scan("mut") == [(0, "mut"), (-1, "$")]
 
 
@@ -19,7 +22,7 @@ def test_ld_scanner_1():
     typedef = TypeDefinition()
     typedef.add_definition("lifetime", "'([a-zA-Z]|_)([0-9a-zA-Z]|_)*")
     typedef.add_definition("char", "'.'")
-    ld = LangDef(list(map(lambda x: x.to_json(), typedef.get_dfa_list())), {}, {}, {})
+    ld = LangDef(list(map(lambda x: x.to_json(), typedef.get_dfa_list())), {}, {}, {}, {})
     assert ld.scan("'a '5' 'b 'c'") == [
         (0, "'a"),
         (1, "'5'"),
@@ -49,7 +52,7 @@ def test_ld_scanner_2():
     typedef.add_definition("int_const", "(-?)(0|[1-9][0-9]*)")
     typedef.add_definition("id", "([a-zA-Z]|_)([a-zA-Z]|[0-9]|_)*")
 
-    ld = LangDef(list(map(lambda x: x.to_json(), typedef.get_dfa_list())), {}, {}, {})
+    ld = LangDef(list(map(lambda x: x.to_json(), typedef.get_dfa_list())), {}, {}, {}, {})
     for in_, out in (
         (
             'select * from whatever where column1 != column2 and (column4 == "some literal" or column3 < 5)',
@@ -136,7 +139,7 @@ def test_ld_scanner_3():
     typedef.add_definition("int_const", "(-?)(0|[1-9][0-9]*)")
     typedef.add_definition("id", "([a-zA-Z]|_)([a-zA-Z]|[0-9]|_)*")
 
-    ld = LangDef(list(map(lambda x: x.to_json(), typedef.get_dfa_list())), {}, {}, {})
+    ld = LangDef(list(map(lambda x: x.to_json(), typedef.get_dfa_list())), {}, {}, {}, {})
 
     assert (
         ld.scan(
@@ -308,45 +311,98 @@ def gen_calc():
         F -> ( E ) | int_const
         """,
     )
-    ar = ProductionFnRegister(cfg)
+    ld = LangDefFactory.new(typedef, cfg)
 
-    @ar.production("E -> T", "T -> F")
+    @ld.production("E -> T", "T -> F")
     def __identity(_, e: int) -> int:
         return e
 
-    @ar.production("E -> E + T")
+    @ld.production("E -> E + T")
     def __add(_, e: int, _p: str, t: int) -> int:
         return e + t
 
-    @ar.production("E -> E - T")
+    @ld.production("E -> E - T")
     def __sub(_, e: int, _m: str, t: int) -> int:
         return e - t
 
-    @ar.production("T -> T * F")
+    @ld.production("T -> T * F")
     def __mul(_, t: int, _m: str, f: int) -> int:
         return t * f
 
-    @ar.production("F -> ( E )")
+    @ld.production("F -> ( E )")
     def __par(_, _l, e: int, _r) -> int:
         return e
 
-    @ar.production("F -> int_const")
+    @ld.production("F -> int_const")
     def __int(_, int_const: str) -> int:
         return int(int_const)
 
-    action, goto = gen_action_todo(cfg)
-    ld = LangDef(
-        list(map(lambda x: x.to_json(), typedef.get_dfa_list())),
-        action.to_json(),
-        goto.to_json(),
-        ar.to_json(),
-    )
     yield ld
 
 
 def test_lang_to_from_json(gen_calc: LangDef):
     reconstructed_ld = LangDef.from_json(gen_calc.to_json())
+
+    @reconstructed_ld.production("E -> T", "T -> F")
+    def __identity(_, e: int) -> int:
+        return e
+
+    @reconstructed_ld.production("E -> E + T")
+    def __add(_, e: int, _p: str, t: int) -> int:
+        return e + t
+
+    @reconstructed_ld.production("E -> E - T")
+    def __sub(_, e: int, _m: str, t: int) -> int:
+        return e - t
+
+    @reconstructed_ld.production("T -> T * F")
+    def __mul(_, t: int, _m: str, f: int) -> int:
+        return t * f
+
+    @reconstructed_ld.production("F -> ( E )")
+    def __par(_, _l, e: int, _r) -> int:
+        return e
+
+    @reconstructed_ld.production("F -> int_const")
+    def __int(_, int_const: str) -> int:
+        return int(int_const)
+
     l = [randint(0, 10) for _ in range(50)]
     in_ = " + ".join(map(str, l))
     assert gen_calc.eval(in_) == reconstructed_ld.eval(in_) == sum(l)
 
+
+def test_calc(gen_calc: LangDef):
+    @dataclass
+    class ExpNode:
+        l: Optional["ExpNode"]
+        r: Optional["ExpNode"]
+        val: int
+
+    leaves = [ExpNode(None, None, randint(-15, 15)) for _ in range(50)]
+    while len(leaves) >= 2:
+        r, l = leaves.pop(), leaves.pop()
+        par = ExpNode(l, r, randint(1000, 1002))
+        leaves.append(par)
+        shuffle(leaves)
+
+    def gen_exp(node: Optional[ExpNode]) -> str:
+        match node:
+            case None:
+                return ""
+            case ExpNode():
+                if node.l is None and node.r is None:
+                    return "%d" % node.val
+                else:
+                    return "(%s %s %s)" % (gen_exp(node.l), "+-*"[node.val - 1000], gen_exp(node.r))
+
+    def eval_node(node: ExpNode) -> int:
+        if node.l is not None and node.r is not None:
+            return (add, sub, mul)[node.val - 1000](eval_node(node.l), eval_node(node.r))
+        else:
+            return node.val
+
+    root = leaves.pop()
+    exp = gen_exp(root)
+    val = eval_node(root)
+    assert gen_calc.eval(exp) == val
