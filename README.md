@@ -33,12 +33,12 @@ cfg = ContextFreeGrammar.from_string(
 )
 ```
 
-Then, you need to build a `LangDef` object through `LangDefFactory`:
+Then, you need to build a `LangDef` object through `LangDefBuilder`:
 
 ```python
-from lang_def_factory import LangDefFactory
+from lang_def_builder import LangDefBuilder
 
-ld = LangDefFactory.new(typedef, cfg)
+ld = LangDefBuilder.new(typedef, cfg)
 ```
 
 `ld` stores all information required to parse the language you defined.

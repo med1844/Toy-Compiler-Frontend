@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 from lang_def import LangDef
-from lang_def_factory import LangDefFactory
+from lang_def_builder import LangDefBuilder
 from typeDef import TypeDefinition
 from cfg import ContextFreeGrammar
 import pytest
@@ -311,7 +311,7 @@ def gen_calc():
         F -> ( E ) | int_const
         """,
     )
-    ld = LangDefFactory.new(typedef, cfg)
+    ld = LangDefBuilder.new(typedef, cfg)
 
     @ld.production("E -> T", "T -> F")
     def __identity(_, e: int) -> int:

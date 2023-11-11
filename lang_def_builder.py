@@ -3,8 +3,8 @@ from lang_def import LangDef
 from typeDef import TypeDefinition
 
 
-class LangDefFactory:
-    """a factory class that bridges `LangDef` and dependencies required to generate portable `LangDef` transition table."""
+class LangDefBuilder:
+    """a helper class that bridges `LangDef` and dependencies required to generate portable `LangDef` transition table."""
 
     @staticmethod
     def new(typedef: TypeDefinition, cfg: ContextFreeGrammar) -> LangDef:
