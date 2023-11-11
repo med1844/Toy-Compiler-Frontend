@@ -1,5 +1,5 @@
 from bisect import bisect_right
-from typing import Callable, Deque, Dict, Set, Tuple, List, Self, Iterable, Any
+from typing import Callable, Deque, Dict, Optional, Set, Tuple, List, Self, Iterable, Any
 from copy import copy, deepcopy
 from .regex_operation import RegexOperation
 from .finite_automata_node import (
@@ -16,6 +16,8 @@ class FANodeClosure:
     # a simple helper class that implements __hash__ so that if the closure has been visited or not could be easily tracked
     def __init__(self, s: Set[FiniteAutomataNode] = set()) -> None:
         self.closure: Set[FiniteAutomataNode] = s
+        id_set = [node.fa_id for node in self.closure if node.fa_id is not None]
+        self.fa_id: Optional[int] = min(id_set) if id_set else None
 
     def __hash__(self) -> int:
         # could also use bitmasks, but too expensive?
@@ -110,7 +112,7 @@ class FiniteAutomata(ToJson):
         visited: Set[FANodeClosure] = set()
 
         closure_to_node: Dict[FANodeClosure, FiniteAutomataNode] = {
-            start_closure: FiniteAutomataNode()
+            start_closure: FiniteAutomataNode(fa_id=start_closure.fa_id)
         }
         # now we have to consider how to merge accept actions
         contains_accept_state = lambda fa_closure: any(
@@ -155,7 +157,7 @@ class FiniteAutomata(ToJson):
                 cond = Transition(*ranges)
                 nxt_closure = epsilon_closure(nxts)
                 if nxt_closure not in closure_to_node:
-                    closure_to_node[nxt_closure] = FiniteAutomataNode()
+                    closure_to_node[nxt_closure] = FiniteAutomataNode(fa_id=nxt_closure.fa_id)
                     que.append(nxt_closure)
                     if contains_accept_state(nxt_closure):
                         accept_states.add(nxt_closure)
@@ -188,7 +190,7 @@ class FiniteAutomata(ToJson):
 
         # from old nodes to new nodes in the new edge reversed NFA
         node_map: Dict[FiniteAutomataNode, FiniteAutomataNode] = {
-            old_node: FiniteAutomataNode() for old_node in edges.keys()
+            old_node: FiniteAutomataNode(fa_id=old_node.fa_id) for old_node in edges.keys()
         }
         for src_node, successors in edges.items():
             for cond, nxt_node in successors:
@@ -345,6 +347,7 @@ class FiniteAutomata(ToJson):
     def to_json(self):
         # returns the amount of nodes, and edges.
         node_id: Dict[FiniteAutomataNode, int] = {}
+        fa_id: Dict[int, int] = {}
         counter = 0
 
         def update_counter(
@@ -352,6 +355,8 @@ class FiniteAutomata(ToJson):
         ):
             nonlocal counter
             node_id[cur_node] = counter
+            if cur_node.fa_id is not None:
+                fa_id[counter] = cur_node.fa_id
             counter += 1
 
         self.start_node.dfs(update_counter, set())
@@ -369,6 +374,9 @@ class FiniteAutomata(ToJson):
                 )  # use str in key to make sure it fits json.dump behavior
 
         self.start_node.dfs(update_edges, set())
+        list_fa_id: List[Optional[int]] = [None] * len(node_id)
+        for k, v in fa_id.items():
+            list_fa_id[k] = v
 
         return {
             "num_node": len(node_id),
@@ -377,6 +385,7 @@ class FiniteAutomata(ToJson):
                 map(lambda node: node_id[node], self.accept_states)
             ),
             "edges": edges,
+            "fa_id": fa_id
         }
 
 

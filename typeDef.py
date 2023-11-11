@@ -1,6 +1,7 @@
-from typing import Optional, Dict, List, Tuple, Self
+from typing import List, Tuple, Self
 
 from dfa_utils.finite_automata import FiniteAutomata
+from dfa_utils.finite_automata_set import FiniteAutomataSet
 
 
 class TypeDefinition:
@@ -55,11 +56,13 @@ class TypeDefinition:
             cur_id = len(self.__name_to_id)
             self.__name_to_id[display_name] = cur_id
 
-    def get_dfa_list(self) -> List[FiniteAutomata]:
-        return list(
-            map(
-                lambda r: FiniteAutomata.from_string(r[1], minimize=True),
-                self.regex,
+    def get_dfa_set(self) -> FiniteAutomataSet:
+        return FiniteAutomataSet(
+            list(
+                map(
+                    lambda r: FiniteAutomata.from_string(r[1], minimize=True),
+                    self.regex,
+                )
             )
         )
 

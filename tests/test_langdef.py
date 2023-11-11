@@ -14,7 +14,7 @@ def test_ld_scanner_0():
     typedef = TypeDefinition()
     typedef.add_definition("mut", "mut")
     typedef.add_definition("identifier", "([a-zA-Z]|_)([0-9a-zA-Z]|_)*")
-    ld = LangDef(list(map(lambda x: x.to_json(), typedef.get_dfa_list())), {}, {}, {}, {})
+    ld = LangDef(typedef.get_dfa_set().to_json(), {}, {}, {}, {})
     assert ld.scan("mut") == [(0, "mut"), (-1, "$")]
 
 
@@ -22,7 +22,7 @@ def test_ld_scanner_1():
     typedef = TypeDefinition()
     typedef.add_definition("lifetime", "'([a-zA-Z]|_)([0-9a-zA-Z]|_)*")
     typedef.add_definition("char", "'.'")
-    ld = LangDef(list(map(lambda x: x.to_json(), typedef.get_dfa_list())), {}, {}, {}, {})
+    ld = LangDef(typedef.get_dfa_set().to_json(), {}, {}, {}, {})
     assert ld.scan("'a '5' 'b 'c'") == [
         (0, "'a"),
         (1, "'5'"),
@@ -52,7 +52,7 @@ def test_ld_scanner_2():
     typedef.add_definition("int_const", "(-?)(0|[1-9][0-9]*)")
     typedef.add_definition("id", "([a-zA-Z]|_)([a-zA-Z]|[0-9]|_)*")
 
-    ld = LangDef(list(map(lambda x: x.to_json(), typedef.get_dfa_list())), {}, {}, {}, {})
+    ld = LangDef(typedef.get_dfa_set().to_json(), {}, {}, {}, {})
     for in_, out in (
         (
             'select * from whatever where column1 != column2 and (column4 == "some literal" or column3 < 5)',
@@ -139,7 +139,7 @@ def test_ld_scanner_3():
     typedef.add_definition("int_const", "(-?)(0|[1-9][0-9]*)")
     typedef.add_definition("id", "([a-zA-Z]|_)([a-zA-Z]|[0-9]|_)*")
 
-    ld = LangDef(list(map(lambda x: x.to_json(), typedef.get_dfa_list())), {}, {}, {}, {})
+    ld = LangDef(typedef.get_dfa_set().to_json(), {}, {}, {}, {})
 
     assert (
         ld.scan(

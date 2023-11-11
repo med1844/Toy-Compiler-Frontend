@@ -1,4 +1,4 @@
-from typing import Callable, List, Set, Tuple, Self
+from typing import Callable, List, Optional, Set, Tuple, Self
 from bisect import bisect_right
 from io_utils.to_json import ToJson
 from io_utils.from_json import FromJson
@@ -88,8 +88,9 @@ class CharTransition(Transition):
 
 
 class FiniteAutomataNode(object):
-    def __init__(self) -> None:
+    def __init__(self, fa_id: Optional[int] = None) -> None:
         self.successors: List[Tuple[Transition, "FiniteAutomataNode"]] = []
+        self.fa_id = fa_id
 
     def add_edge(self, cond: Transition, other: "FiniteAutomataNode") -> None:
         self.successors.append((cond, other))

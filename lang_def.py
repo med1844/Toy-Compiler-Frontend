@@ -1,7 +1,8 @@
-from typing import Any, List, Dict, Set, Tuple, Deque, Callable, Iterable
+from typing import Any, List, Dict, Optional, Set, Tuple, Deque, Callable, Iterable
 from collections import deque
 from io_utils.from_json import FromJson
 from io_utils.to_json import ToJson
+from time import sleep
 
 
 class LangDef(ToJson, FromJson):
@@ -21,13 +22,13 @@ class LangDef(ToJson, FromJson):
     # TODO: further split into things like `trait JsonScanner`, `train JsonParser`, etc
     def __init__(
         self,
-        dfa_list_json: List[Dict],
+        dfa_set_json: Dict[str, Any],
         raw_grammar_to_id: Dict[str, int],
         prod_id_to_narg_and_non_terminal: Dict[str, Tuple[int, str]],
         action_json: Dict,
         goto_json: Dict,
     ):
-        self.dfa_list_json = dfa_list_json
+        self.dfa_set_json = dfa_set_json
         self.raw_grammar_to_id = raw_grammar_to_id
         self.prod_id_to_narg_and_non_terminal = prod_id_to_narg_and_non_terminal
         self.action_json = action_json
@@ -52,14 +53,19 @@ class LangDef(ToJson, FromJson):
 
         return decorate
 
-    def __match_first(self, dfa: Dict, s: Iterable[str]) -> str:
-        cur_node: str = dfa["start_node"]
-        accept_states: Set[str] = set(dfa["accept_states"])
+    @staticmethod
+    def match_one(dfa: Dict[str, Any], s: Iterable[str]) -> Tuple[int, str]:
+        cur_node: int = dfa["start_node"]
+        accept_states: Set[int] = set(dfa["accept_states"])
+        fa_id: List[Optional[int]] = dfa["fa_id"]
         buffer = []
         accepted_buffer = []
+        last_accept_state_fa_id: Optional[int] = None
         for c in s:
             any_hit = False
             if cur_node in accept_states:
+                if fa_id[cur_node] is not None:
+                    last_accept_state_fa_id = fa_id[cur_node]
                 accepted_buffer.extend(buffer)
                 buffer.clear()
             for cond, nxt_node in dfa["edges"].get(str(cur_node), ()):
@@ -75,23 +81,19 @@ class LangDef(ToJson, FromJson):
             if not any_hit:
                 break
         if cur_node in accept_states:
+            if fa_id[cur_node] is not None:
+                last_accept_state_fa_id = fa_id[cur_node]
             accepted_buffer.extend(buffer)
             buffer.clear()
-        if accepted_buffer:
-            return "".join(accepted_buffer)
-        return ""
+        if accepted_buffer and last_accept_state_fa_id is not None:
+            return (last_accept_state_fa_id, "".join(accepted_buffer))
+        return (-1, "")
 
     def scan(self, s: str) -> List[Tuple[int, str]]:
-        def parse_one_word(dfa_list: List[Dict], s: Deque[str]) -> Tuple[int, str]:
-            return max(
-                enumerate(self.__match_first(dfa, s) for dfa in dfa_list),
-                key=lambda x: x[1],
-            )
-
         tokens = []
         deque_s = deque(s)
         while deque_s:
-            (id, word) = parse_one_word(self.dfa_list_json, deque_s)
+            (id, word) = self.match_one(self.dfa_set_json, deque_s)
             if word:
                 tokens.append((id, word))
             for _ in range(len(word)):
@@ -153,7 +155,7 @@ class LangDef(ToJson, FromJson):
 
     def to_json(self):
         return {
-            "dfa_list_json": self.dfa_list_json,
+            "dfa_set_json": self.dfa_set_json,
             "raw_grammar_to_id": self.raw_grammar_to_id,
             "prod_id_to_narg_and_non_terminal": self.prod_id_to_narg_and_non_terminal,
             "action_json": self.action_json,
@@ -163,7 +165,7 @@ class LangDef(ToJson, FromJson):
     @classmethod
     def from_json(cls, obj: Dict[str, Any]):
         return cls(
-            obj["dfa_list_json"],
+            obj["dfa_set_json"],
             obj["raw_grammar_to_id"],
             obj["prod_id_to_narg_and_non_terminal"],
             obj["action_json"],
