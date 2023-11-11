@@ -2,7 +2,6 @@ from typing import Any, List, Dict, Optional, Set, Tuple, Deque, Callable, Itera
 from collections import deque
 from io_utils.from_json import FromJson
 from io_utils.to_json import ToJson
-from time import sleep
 
 
 class LangDef(ToJson, FromJson):

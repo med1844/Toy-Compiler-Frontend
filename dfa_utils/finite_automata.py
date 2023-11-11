@@ -385,7 +385,7 @@ class FiniteAutomata(ToJson):
                 map(lambda node: node_id[node], self.accept_states)
             ),
             "edges": edges,
-            "fa_id": fa_id
+            "fa_id": list_fa_id
         }
 
 
