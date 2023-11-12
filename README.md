@@ -143,6 +143,22 @@ while True:
 
 This would allow you avoid rebuilding transition tables from definitions each time, which could be time-consuming when the definition is too large.
 
+## Web app
+
+We provided a web app that could print out the content of each LR(1) item set, and their transition tables. On top of that, you can parse and see result in real time:
+
+![webapp](webapp.png)
+
+The screenshot shows the parsing result of this expression: `(define (map f x) (cons (f (car x)) (map f (cdr x))))`. The underlying CFG is:
+
+```
+START -> expression
+expression -> function_call | val
+function_call -> ( id arguments )
+arguments -> expression arguments | expression
+val -> int_const | id
+```
+
 ## Planned improvements
 
 - [x] Rewrite lexer using DFA instead of NFA-based `re`
@@ -162,7 +178,7 @@ This would allow you avoid rebuilding transition tables from definitions each ti
   - [x] Write a hash function that encodes the structural information of arbitrary finite automata for auto tests
   - [x] Implement a lexer that's based on DFA
   - [x] Add FA serialization & de-serialization
-  - [ ] Add accept state id propagation & merge for faster scanning
+  - [x] Add accept state id propagation & merge for faster scanning
 - [x] Migrate to typed python
 - [ ] Make parser a module
 - [x] Optimize parser memory usage by eliminating building actual parse tree

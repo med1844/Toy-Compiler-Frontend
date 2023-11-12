@@ -1,4 +1,5 @@
-from typing import Deque, Iterable, Optional, Self, Set, List, Tuple, Dict, Any
+from abc import ABC, abstractmethod
+from typing import Deque, Iterable, Optional, Self, Set, List, Tuple, Dict, Any, Union
 from typeDef import TypeDefinition
 from collections import deque
 from io_utils.to_json import ToJson
@@ -365,7 +366,7 @@ class LRItem:
             return self.dot_pos < other.dot_pos
         return self.production_id < other.production_id
 
-    def get(self, cfg: ContextFreeGrammar, offset=0):
+    def get(self, cfg: ContextFreeGrammar, offset=0) -> Optional[str | int]:
         return cfg.get_symbol_in_prod(self.production_id, self.dot_pos, offset)
 
     def move_dot_forward(self):
@@ -405,7 +406,7 @@ class LRItemSet:
             self.items.add(item)
             self.__recalc_hash_flag = True
 
-    def get_next(self, cfg: ContextFreeGrammar) -> Set[LRItem]:
+    def get_next(self, cfg: ContextFreeGrammar) -> Set[int | str]:
         """
         get all possible out-pointing edges toward other LRItems, which could be later turned into LRItemSets.
         """
@@ -464,6 +465,48 @@ class LRItemSet:
         for (prod_id, dot_pos), v in record.items():
             result.add_lr_item(LRItem(prod_id, v, dot_pos))
         return result
+
+
+class SymbolPrinter:
+    @staticmethod
+    def to_string(typedef: TypeDefinition, sym: str | int) -> str:
+        match sym:
+            case str():
+                return sym if sym != ContextFreeGrammar.EMPTY else "''"
+            case int():
+                return typedef.get_name_by_id(sym)
+
+
+class LRItemPrinter:
+    @staticmethod
+    def to_string(typedef: TypeDefinition, cfg: ContextFreeGrammar, item: LRItem) -> str:
+        non, seq = cfg.get_production(item.production_id)
+        seqStr = " ".join(SymbolPrinter.to_string(typedef, _) for _ in seq[:item.dot_pos]) \
+               + " ◦ " \
+               + " ".join(SymbolPrinter.to_string(typedef, _) for _ in seq[item.dot_pos:])
+        lfStr = "%s" % "/".join(sorted(SymbolPrinter.to_string(typedef, _) for _ in item.look_forward))
+        return "%s -> %s, %s" % (non, seqStr, lfStr)
+
+
+class LRItemSetPrinter:
+    @staticmethod
+    def to_string(typedef: TypeDefinition, cfg: ContextFreeGrammar, item_set: LRItemSet) -> str:
+        return '\n'.join(sorted(LRItemPrinter.to_string(typedef, cfg, item) for item in item_set.items))
+
+
+class LangPrinter:
+    def __init__(self, typedef: TypeDefinition, cfg: ContextFreeGrammar) -> None:
+        self.typedef = typedef
+        self.cfg = cfg
+
+    def to_string(self, val: Union[str, int] | LRItem | LRItemSet) -> str:
+        match val:
+            case str() | int():
+                return SymbolPrinter.to_string(self.typedef, val)
+            case LRItem():
+                return LRItemPrinter.to_string(self.typedef, self.cfg, val)
+            case LRItemSet():
+                return LRItemSetPrinter.to_string(self.typedef, self.cfg, val)
 
 
 class Action(ToJson):
@@ -603,7 +646,7 @@ class Goto(ToJson):
         return resultGoto
 
 
-def gen_action_todo(cfg: ContextFreeGrammar) -> Tuple[Action, Goto]:
+def gen_action_todo(cfg: ContextFreeGrammar, dump_to: Optional[List[Tuple[Dict[LRItemSet, int], Dict[int, Tuple[str | int, int]]]]] = None) -> Tuple[Action, Goto]:
     cfg_for_first = cfg.remove_left_recursion() if cfg.is_left_recursive() else cfg
     first_dict = cfg_for_first.first()
 
@@ -641,6 +684,9 @@ def gen_action_todo(cfg: ContextFreeGrammar) -> Tuple[Action, Goto]:
             edges.setdefault(item_set_to_id[cur], []).append(
                 (step, item_set_to_id[next_item_set])
             )
+
+    if dump_to is not None:
+        dump_to.append((item_set_to_id, edges))
 
     action, goto = Action(cfg, len(item_set_to_id)), Goto(cfg, len(item_set_to_id))
     for src, v in edges.items():
