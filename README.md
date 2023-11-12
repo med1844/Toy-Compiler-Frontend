@@ -1,8 +1,10 @@
-# newCompilerTest
+# Toy compiler front-end framework
 
-Python implementation of scanner, LR(1) Parsing method, Action &amp; Goto Table, Parse Tree &amp; AST.
+This repository contains:
 
-On top of these, I implemented a compiler that translate an experimental language `simpleJava` into NASM.
+- A regex engine that supports a subset of regex, based on Min-DFA.
+- A LR(1) transition table generator.
+- A portable scanner + parser, and built-in CFG production action support (i.e. functions to be called when some production is reduced)
 
 ## How to use
 
@@ -159,6 +161,12 @@ arguments -> expression arguments | expression
 val -> int_const | id
 ```
 
+### Start web app
+
+```python
+flask --app server.py run
+```
+
 ## Planned improvements
 
 - [x] Rewrite lexer using DFA instead of NFA-based `re`
@@ -180,10 +188,17 @@ val -> int_const | id
   - [x] Add FA serialization & de-serialization
   - [x] Add accept state id propagation & merge for faster scanning
 - [x] Migrate to typed python
-- [ ] Make parser a module
+- [x] Make parser a module (now it's `LangDef`)
 - [x] Optimize parser memory usage by eliminating building actual parse tree
 - [x] Add unit tests for each module
-- [ ] Define interfaces for CFG parser & implement other parsers (LL1, etc)
+- [x] (Cancelled) ~~Define interfaces for CFG parser & implement other parsers (LL1, etc)~~
+- Web app optimizations:
+  - [ ] Add custom `TypeDefinition` to web app
+  - [ ] Add example `TypeDefinition` and `ContextFreeGrammar` to web app
+- Language definition QOL issues:
+  - [ ] Unify `TypeDefinition` and `ContextFreeGrammar` into one file (CFG section, typedef section)
+  - [ ] Remove boilerplate definitions in `typedef`, i.e. things don't need regex power (e.g. `public public`, `( \(`)
+  - [ ] Make `ContextFreeGrammar` support BNF notation (or maybe extended BNF?)
 - [ ] Move `simpleSQL` and `simpleJava` to other repositories
   - [ ] For `simpleSQL`, implement an operator-based sql engine in a separate project
   - [ ] For ``simpleJava, implement IR passes & maybe generate LLVM IRs in a separate project
