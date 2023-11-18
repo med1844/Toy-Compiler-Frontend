@@ -6,9 +6,8 @@ from flask import render_template, Flask, request
 from cfg import ContextFreeGrammar, gen_action_todo, LangPrinter
 from lang_def import LangDef
 from lang_def_builder import LangDefBuilder
-from typeDef import TypeDefinition
 import os
-from typing import List, Any, Tuple
+from typing import List, Tuple
 from vis_utils.tree import Tree, TreeNode
 
 app = Flask(__name__)
@@ -25,12 +24,11 @@ def index():
 @app.route("/generateLR", methods=["POST"])
 def generate():
     rawCFG = request.form["CFG"]
-    typedef = TypeDefinition.from_filename("simpleJava/typedef")
-    cfg = ContextFreeGrammar.from_string(typedef, rawCFG)
-    lp = LangPrinter(typedef, cfg)
+    cfg = ContextFreeGrammar.from_string(rawCFG)
+    lp = LangPrinter(cfg)
 
     app.config["cfg"] = cfg
-    app.config["ld"] = LangDefBuilder.new(typedef, cfg)
+    app.config["ld"] = LangDefBuilder.new(cfg)
     app.config["lp"] = lp
 
     dump_dst = []

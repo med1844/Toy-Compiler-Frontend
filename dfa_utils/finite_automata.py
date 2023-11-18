@@ -232,6 +232,16 @@ class FiniteAutomata(ToJson):
         )
 
     @classmethod
+    def from_literal(cls, literal: str) -> Self:
+        start_node = FiniteAutomataNode()
+        cur_node = start_node
+        for c in literal:
+            next_node = FiniteAutomataNode()
+            cur_node.add_edge(CharTransition(c), next_node)
+            cur_node = next_node
+        return cls(start_node, {cur_node})
+
+    @classmethod
     def from_string(cls, regex: str, determinize=False, minimize=False) -> Self:
         # WARNING:
         # by default, this function would return an NFA.

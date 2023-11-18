@@ -1,77 +1,43 @@
-from typing import List, Tuple, Self
+from typing import List, Tuple
 
 from dfa_utils.finite_automata import FiniteAutomata
 from dfa_utils.finite_automata_set import FiniteAutomataSet
 
 
 class TypeDefinition:
-    r"""
-    To create type definition, use TypeDefinition.load(fileName).
-
-    For each line, the type definition should contain three elements,
-    divided by space:
-        1. display name
-        2. regular expression
-
-    For example:
-        int_const (-?)(0|[1-9][0-9]*)
-        int int
-        < <
+    """
+    A helper class that stores patterns / regexes and their corresponding id
     """
 
-    @staticmethod
-    def from_filename(filename: str):
-        """
-        Load type definition from given file.
-        """
-        with open(filename, "r") as f:
-            src = f.read().strip()
-        return TypeDefinition.from_string(src)
-
-    @classmethod
-    def from_string(cls, string: str) -> Self:
-        """
-        Load type definition from given string.
-        """
-        td = cls()
-        for line in string.split("\n"):
-            a, b = line.strip().split(" ")
-            td.add_definition(a, b)
-        return td
-
     def __init__(self):
-        self.regex: List[Tuple[str, str]] = []
-        self.__name_to_id = {}  # map name to integer id
-        self.re = None
+        self.patterns: List[Tuple[str, bool]] = [] # (is_regex, pattern)
+        self.pattern_to_id = {}  # map name to integer id
 
     def __str__(self):
-        return str(self.regex) + "\n" + str(self.__name_to_id)
+        return str(self.patterns) + "\n" + str(self.pattern_to_id)
 
-    def add_definition(self, display_name: str, expression: str):
-        self.regex.append((display_name, expression))
+    def add_definition(self, pattern: str, is_regex: bool = False):
+        self.patterns.append((pattern, is_regex))
 
         # in order to take less memory and have faster process speed,
         # map string to int.
-        if display_name not in self.__name_to_id:
-            cur_id = len(self.__name_to_id)
-            self.__name_to_id[display_name] = cur_id
+        if pattern not in self.pattern_to_id:
+            self.pattern_to_id[pattern] = len(self.pattern_to_id)
 
     def get_dfa_set(self) -> FiniteAutomataSet:
         return FiniteAutomataSet(
             list(
                 map(
-                    lambda r: FiniteAutomata.from_string(r[1], minimize=True),
-                    self.regex,
+                    lambda r: FiniteAutomata.from_string(r[0], minimize=True) if r[1] else FiniteAutomata.from_literal(r[0]),
+                    self.patterns,
                 )
             )
         )
 
-    def get_name_n_regex(self):
-        return self.regex
+    def get_pattern_id(self, pattern: str) -> int:
+        return self.pattern_to_id[pattern]
 
-    def get_id_by_name(self, name: str) -> int:
-        assert name in self.__name_to_id
-        return self.__name_to_id[name]
-
-    def get_name_by_id(self, id_: int) -> str:
-        return self.regex[id_][0]
+    def get_pattern(self, id_: int) -> str:
+        if id_ < 0:
+            return "$"
+        return self.patterns[id_][0]

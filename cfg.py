@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 from typing import Deque, Iterable, Optional, Self, Set, List, Tuple, Dict, Any, Union
 from typeDef import TypeDefinition
 from collections import deque
@@ -21,22 +20,22 @@ class ContextFreeGrammar:
     EOF = -1
     EMPTY = ""
 
-    @classmethod
-    def load(cls, typedef: TypeDefinition, filename: str) -> Self:
-        """
-        Given type definition and fileName, create and return a CFG object.
-        """
-        assert isinstance(typedef, TypeDefinition)
-        with open(filename, "r") as f:
-            src = f.read()
-        return cls.from_string(typedef, src)
+    @staticmethod
+    def parse_terminal(terminal: str) -> Tuple[str, bool]:
+        if (terminal.startswith('"') and terminal.endswith('"')) \
+            or (terminal.startswith("'") and terminal.endswith("'")):
+            return terminal[1:-1], False
+        elif (terminal.startswith('r"') and terminal.endswith('"')) \
+            or (terminal.startswith("r'") and terminal.endswith("'")):
+            return terminal[2:-1], True
+        assert False
+
 
     @classmethod
-    def from_string(cls, typedef: TypeDefinition, string: str) -> Self:
+    def from_string(cls, string: str) -> Self:
         """
         Given type definition and CFG string, create and return a CFG object.
         """
-        assert isinstance(typedef, TypeDefinition)
         non_terminals: Set[str] = set()
         all_symbol: Set[str] = set()
         grammar_to_id: Dict[Tuple[str, Tuple[str | int, ...]], int] = {}
@@ -66,33 +65,52 @@ class ContextFreeGrammar:
                     all_symbol.add(symbol)
         assert start_symbol is not None
 
+        typedef = TypeDefinition()
+        terminals = set()
+
+        for line in string.split("\n"):
+            line = line.strip()
+            if not line:
+                continue
+            _, seqs = line.split(" -> ")
+
+            for seq in seqs.split(" | "):
+                symbols = seq.split(" ")
+                for symbol in seq.split(" "):
+                    if symbol not in non_terminals:
+                        processed_terminal, is_regex = cls.parse_terminal(symbol)
+                        typedef.add_definition(processed_terminal, is_regex)
+                        terminals.add(processed_terminal)
+
         for i, (non_terminal, symbols) in enumerate(temp):
             symbols = tuple(
                 ""
                 if sym == "''"
-                else typedef.get_id_by_name(sym)
+                else typedef.get_pattern_id(cls.parse_terminal(sym)[0])
                 if sym not in non_terminals
                 else sym
                 for sym in symbols
             )
             grammar_to_id[(non_terminal, symbols)] = i
 
-        terminals = {
-            typedef.get_id_by_name(_) for _ in all_symbol - non_terminals if _ != "''"
+        terminals_id = {
+            typedef.get_pattern_id(t) for t in terminals if t != "''"
         }
 
         return cls(
-            terminals, non_terminals, start_symbol, grammar_to_id, raw_grammar_to_id
+            typedef, terminals_id, non_terminals, start_symbol, grammar_to_id, raw_grammar_to_id
         )
 
     def __init__(
         self,
+        typedef: TypeDefinition,
         terminals: Set[int],
         non_terminals: Set[str],
         start_symbol: str,
         grammar_to_id: Dict[Tuple[str, Tuple[str | int, ...]], int],
         raw_grammar_to_id: Dict[str, int],
     ):
+        self.typedef = typedef
         self.terminals = terminals
         self.non_terminals = non_terminals
         self.start_symbol = start_symbol
@@ -213,6 +231,7 @@ class ContextFreeGrammar:
                         result_grammar_to_id
                     )
         return ContextFreeGrammar(
+            self.typedef,
             self.terminals,
             result_non_terminals,
             self.start_symbol,
@@ -474,39 +493,38 @@ class SymbolPrinter:
             case str():
                 return sym if sym != ContextFreeGrammar.EMPTY else "''"
             case int():
-                return typedef.get_name_by_id(sym)
+                return typedef.get_pattern(sym)
 
 
 class LRItemPrinter:
     @staticmethod
-    def to_string(typedef: TypeDefinition, cfg: ContextFreeGrammar, item: LRItem) -> str:
+    def to_string(cfg: ContextFreeGrammar, item: LRItem) -> str:
         non, seq = cfg.get_production(item.production_id)
-        seqStr = " ".join(SymbolPrinter.to_string(typedef, _) for _ in seq[:item.dot_pos]) \
+        seqStr = " ".join(SymbolPrinter.to_string(cfg.typedef, _) for _ in seq[:item.dot_pos]) \
                + " ◦ " \
-               + " ".join(SymbolPrinter.to_string(typedef, _) for _ in seq[item.dot_pos:])
-        lfStr = "%s" % "/".join(sorted(SymbolPrinter.to_string(typedef, _) for _ in item.look_forward))
+               + " ".join(SymbolPrinter.to_string(cfg.typedef, _) for _ in seq[item.dot_pos:])
+        lfStr = "%s" % "/".join(sorted(SymbolPrinter.to_string(cfg.typedef, _) for _ in item.look_forward))
         return "%s -> %s, %s" % (non, seqStr, lfStr)
 
 
 class LRItemSetPrinter:
     @staticmethod
-    def to_string(typedef: TypeDefinition, cfg: ContextFreeGrammar, item_set: LRItemSet) -> str:
-        return '\n'.join(sorted(LRItemPrinter.to_string(typedef, cfg, item) for item in item_set.items))
+    def to_string(cfg: ContextFreeGrammar, item_set: LRItemSet) -> str:
+        return '\n'.join(sorted(LRItemPrinter.to_string(cfg, item) for item in item_set.items))
 
 
 class LangPrinter:
-    def __init__(self, typedef: TypeDefinition, cfg: ContextFreeGrammar) -> None:
-        self.typedef = typedef
+    def __init__(self, cfg: ContextFreeGrammar) -> None:
         self.cfg = cfg
 
     def to_string(self, val: Union[str, int] | LRItem | LRItemSet) -> str:
         match val:
             case str() | int():
-                return SymbolPrinter.to_string(self.typedef, val)
+                return SymbolPrinter.to_string(self.cfg.typedef, val)
             case LRItem():
-                return LRItemPrinter.to_string(self.typedef, self.cfg, val)
+                return LRItemPrinter.to_string(self.cfg, val)
             case LRItemSet():
-                return LRItemSetPrinter.to_string(self.typedef, self.cfg, val)
+                return LRItemSetPrinter.to_string(self.cfg, val)
 
 
 class Action(ToJson):
@@ -707,15 +725,3 @@ def gen_action_todo(cfg: ContextFreeGrammar, dump_to: Optional[List[Tuple[Dict[L
                         action[v][str(sym)] = (2, None)  # 2 means Accept
     return action, goto
 
-
-if __name__ == "__main__":
-    typedef = TypeDefinition.from_filename("simpleJava/typedef")
-    cfg = ContextFreeGrammar.load(typedef, "simpleJava/simpleJavaCFG")
-    print(cfg.terminals)
-    print(cfg.non_terminals)
-    print(cfg.start_symbol)
-    print(cfg.grammar_to_id)
-    print(cfg.raw_grammar_to_id)
-    action, goto = gen_action_todo(cfg)
-    print(action)
-    print(goto)

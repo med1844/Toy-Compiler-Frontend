@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import json
 from typing import Optional
 from lang_def import LangDef
 from lang_def_builder import LangDefBuilder
@@ -12,16 +13,16 @@ from operator import add, sub, mul
 def test_ld_scanner_0():
     # test match priority
     typedef = TypeDefinition()
-    typedef.add_definition("mut", "mut")
-    typedef.add_definition("identifier", "([a-zA-Z]|_)([0-9a-zA-Z]|_)*")
+    typedef.add_definition("mut")
+    typedef.add_definition("([a-zA-Z]|_)([0-9a-zA-Z]|_)*", True)
     ld = LangDef(typedef.get_dfa_set().to_json(), {}, {}, {}, {})
     assert ld.scan("mut") == [(0, "mut"), (-1, "$")]
 
 
 def test_ld_scanner_1():
     typedef = TypeDefinition()
-    typedef.add_definition("lifetime", "'([a-zA-Z]|_)([0-9a-zA-Z]|_)*")
-    typedef.add_definition("char", "'.'")
+    typedef.add_definition("'([a-zA-Z]|_)([0-9a-zA-Z]|_)*", True)
+    typedef.add_definition("'.'", True)
     ld = LangDef(typedef.get_dfa_set().to_json(), {}, {}, {}, {})
     assert ld.scan("'a '5' 'b 'c'") == [
         (0, "'a"),
@@ -34,23 +35,23 @@ def test_ld_scanner_1():
 
 def test_ld_scanner_2():
     typedef = TypeDefinition()
-    typedef.add_definition("select", "select")
-    typedef.add_definition("from", "from")
-    typedef.add_definition("where", "where")
-    typedef.add_definition("and", "and")
-    typedef.add_definition("or", "or")
-    typedef.add_definition(",", ",")
-    typedef.add_definition(".", r"\.")
-    typedef.add_definition("*", r"\*")
-    typedef.add_definition("==", "==")
-    typedef.add_definition("!=", "!=")
-    typedef.add_definition("<", "<")
-    typedef.add_definition(">", ">")
-    typedef.add_definition("(", r"\(")
-    typedef.add_definition(")", r"\)")
-    typedef.add_definition("str_literal", r"\"[^\"]*\"")
-    typedef.add_definition("int_const", "(-?)(0|[1-9][0-9]*)")
-    typedef.add_definition("id", "([a-zA-Z]|_)([a-zA-Z]|[0-9]|_)*")
+    typedef.add_definition("select")
+    typedef.add_definition("from")
+    typedef.add_definition("where")
+    typedef.add_definition("and")
+    typedef.add_definition("or")
+    typedef.add_definition(",")
+    typedef.add_definition(".")
+    typedef.add_definition("*")
+    typedef.add_definition("==")
+    typedef.add_definition("!=")
+    typedef.add_definition("<")
+    typedef.add_definition(">")
+    typedef.add_definition("(")
+    typedef.add_definition(")")
+    typedef.add_definition(r"\"[^\"]*\"", True)
+    typedef.add_definition("(-?)(0|[1-9][0-9]*)", True)
+    typedef.add_definition("([a-zA-Z]|_)([a-zA-Z]|[0-9]|_)*", True)
 
     ld = LangDef(typedef.get_dfa_set().to_json(), {}, {}, {}, {})
     for in_, out in (
@@ -110,34 +111,34 @@ def test_ld_scanner_2():
 
 def test_ld_scanner_3():
     typedef = TypeDefinition()
-    typedef.add_definition("fn", "fn")
-    typedef.add_definition("(", r"\(")
-    typedef.add_definition(")", r"\)")
-    typedef.add_definition("[", r"\[")
-    typedef.add_definition("]", r"\]")
-    typedef.add_definition("{", "{")
-    typedef.add_definition("}", "}")
-    typedef.add_definition("&", "&")
-    typedef.add_definition("|=", r"\|=")
-    typedef.add_definition("|", r"\|")
-    typedef.add_definition("mut", "mut")
-    typedef.add_definition("let", "let")
-    typedef.add_definition("for", "for")
-    typedef.add_definition("in", "in")
-    typedef.add_definition("::", "::")
-    typedef.add_definition(":", ":")
-    typedef.add_definition(";", ";")
-    typedef.add_definition("..", r"\.\.")
-    typedef.add_definition(".", r"\.")
-    typedef.add_definition(",", ",")
-    typedef.add_definition("<<", "<<")
-    typedef.add_definition("<<=", "<<=")
-    typedef.add_definition(">>", ">>")
-    typedef.add_definition(">>=", ">>=")
-    typedef.add_definition("<", "<")
-    typedef.add_definition(">", ">")
-    typedef.add_definition("int_const", "(-?)(0|[1-9][0-9]*)")
-    typedef.add_definition("id", "([a-zA-Z]|_)([a-zA-Z]|[0-9]|_)*")
+    typedef.add_definition("fn")
+    typedef.add_definition("(")
+    typedef.add_definition(")")
+    typedef.add_definition("[")
+    typedef.add_definition("]")
+    typedef.add_definition("{")
+    typedef.add_definition("}")
+    typedef.add_definition("&")
+    typedef.add_definition("|=")
+    typedef.add_definition("|")
+    typedef.add_definition("mut")
+    typedef.add_definition("let")
+    typedef.add_definition("for")
+    typedef.add_definition("in")
+    typedef.add_definition("::")
+    typedef.add_definition(":")
+    typedef.add_definition(";")
+    typedef.add_definition("..")
+    typedef.add_definition(".")
+    typedef.add_definition(",")
+    typedef.add_definition("<<")
+    typedef.add_definition("<<=")
+    typedef.add_definition(">>")
+    typedef.add_definition(">>=")
+    typedef.add_definition("<")
+    typedef.add_definition(">")
+    typedef.add_definition("(-?)(0|[1-9][0-9]*)", True)
+    typedef.add_definition("([a-zA-Z]|_)([a-zA-Z]|[0-9]|_)*", True)
 
     ld = LangDef(typedef.get_dfa_set().to_json(), {}, {}, {}, {})
 
@@ -295,45 +296,38 @@ def test_ld_scanner_3():
 
 @pytest.fixture
 def gen_calc():
-    typedef = TypeDefinition()
-    typedef.add_definition("+", r"\+")
-    typedef.add_definition("-", r"-")
-    typedef.add_definition("*", r"\*")
-    typedef.add_definition("(", r"\(")
-    typedef.add_definition(")", r"\)")
-    typedef.add_definition("int_const", r"0|(-?)[1-9][0-9]*")
     cfg = ContextFreeGrammar.from_string(
-        typedef,
         """
         START -> E
-        E -> E + T | E - T | T
-        T -> T * F | F
-        F -> ( E ) | int_const
+        E -> E "+" T | E "-" T | T
+        T -> T "*" F | F
+        F -> "(" E ")" | int_const
+        int_const -> r"0|(-?)[1-9][0-9]*"
         """,
     )
-    ld = LangDefBuilder.new(typedef, cfg)
+    ld = LangDefBuilder.new(cfg)
 
-    @ld.production("E -> T", "T -> F")
+    @ld.production("E -> T", "T -> F", "F -> int_const")
     def __identity(_, e: int) -> int:
         return e
 
-    @ld.production("E -> E + T")
+    @ld.production('E -> E "+" T')
     def __add(_, e: int, _p: str, t: int) -> int:
         return e + t
 
-    @ld.production("E -> E - T")
+    @ld.production('E -> E "-" T')
     def __sub(_, e: int, _m: str, t: int) -> int:
         return e - t
 
-    @ld.production("T -> T * F")
+    @ld.production('T -> T "*" F')
     def __mul(_, t: int, _m: str, f: int) -> int:
         return t * f
 
-    @ld.production("F -> ( E )")
+    @ld.production('F -> "(" E ")"')
     def __par(_, _l, e: int, _r) -> int:
         return e
 
-    @ld.production("F -> int_const")
+    @ld.production('int_const -> r"0|(-?)[1-9][0-9]*"')
     def __int(_, int_const: str) -> int:
         return int(int_const)
 
@@ -341,29 +335,29 @@ def gen_calc():
 
 
 def test_lang_to_from_json(gen_calc: LangDef):
-    reconstructed_ld = LangDef.from_json(gen_calc.to_json())
+    reconstructed_ld = LangDef.from_json(json.loads(json.dumps(gen_calc.to_json())))
 
-    @reconstructed_ld.production("E -> T", "T -> F")
+    @reconstructed_ld.production("E -> T", "T -> F", "F -> int_const")
     def __identity(_, e: int) -> int:
         return e
 
-    @reconstructed_ld.production("E -> E + T")
+    @reconstructed_ld.production('E -> E "+" T')
     def __add(_, e: int, _p: str, t: int) -> int:
         return e + t
 
-    @reconstructed_ld.production("E -> E - T")
+    @reconstructed_ld.production('E -> E "-" T')
     def __sub(_, e: int, _m: str, t: int) -> int:
         return e - t
 
-    @reconstructed_ld.production("T -> T * F")
+    @reconstructed_ld.production('T -> T "*" F')
     def __mul(_, t: int, _m: str, f: int) -> int:
         return t * f
 
-    @reconstructed_ld.production("F -> ( E )")
+    @reconstructed_ld.production('F -> "(" E ")"')
     def __par(_, _l, e: int, _r) -> int:
         return e
 
-    @reconstructed_ld.production("F -> int_const")
+    @reconstructed_ld.production('int_const -> r"0|(-?)[1-9][0-9]*"')
     def __int(_, int_const: str) -> int:
         return int(int_const)
 
