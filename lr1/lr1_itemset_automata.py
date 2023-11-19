@@ -1,8 +1,9 @@
 from typing import Self, Tuple, Dict, Deque
 from collections import deque
 
-from .cfg import ContextFreeGrammar
-from .lr1 import LRItem, LRItemSet
+from cfg_utils.cfg import ContextFreeGrammar
+from .lr1_item import LRItem
+from .lr1_itemset import LRItemSet
 
 
 class LRItemSetAutomata:

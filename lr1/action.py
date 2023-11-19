@@ -2,7 +2,7 @@ from typing import List, Dict, Optional, Tuple
 import json
 
 from io_utils.to_json import ToJson
-from .cfg import ContextFreeGrammar
+from cfg_utils.cfg import ContextFreeGrammar
 
 
 class Action(ToJson):

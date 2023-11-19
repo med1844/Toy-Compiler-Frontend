@@ -1,7 +1,7 @@
 from typing import List, Tuple
 from cfg_utils.cfg import ContextFreeGrammar
-from cfg_utils.lr1_automata import LRItemSetAutomata
-from cfg_utils.lr1_io import LRItemSetPrinter, LRItemSetParser, LRItemParser, SymbolParser
+from lr1.lr1_itemset_automata import LRItemSetAutomata
+from lr1.lr1_io import LRItemSetPrinter, LRItemSetParser, LRItemParser, SymbolParser
 
 
 def test_lr1_io_split_lookforward():
@@ -433,9 +433,6 @@ def test_lr1_table_3():
             """
         ),
     ]
-    for k, v in lr_automata.item_set_to_id.items():
-        print(v)
-        print(LRItemSetPrinter.to_string(cfg, k))
     assert set(lr_automata.item_set_to_id.keys()) == set(expected_item_sets)
     expected_edges: List[Tuple[int, str, int]] = [
         (0, "L", 1),

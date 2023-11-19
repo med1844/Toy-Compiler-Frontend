@@ -1,6 +1,6 @@
 from cfg_utils.cfg import ContextFreeGrammar
-from cfg_utils.action_goto_builder import ActionGotoBuilder
-from cfg_utils.lr1_automata import LRItemSetAutomata
+from lr1.action_goto_builder import ActionGotoBuilder
+from lr1.lr1_itemset_automata import LRItemSetAutomata
 from lang_def import LangDef
 
 

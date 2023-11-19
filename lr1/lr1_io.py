@@ -1,9 +1,10 @@
 from collections import deque
 from typing import Iterable, Union
 
-from .type_def import TypeDefinition
-from .cfg import ContextFreeGrammar
-from .lr1 import LRItem, LRItemSet
+from cfg_utils.type_def import TypeDefinition
+from cfg_utils.cfg import ContextFreeGrammar
+from .lr1_item import LRItem
+from .lr1_itemset import LRItemSet
 
 
 class SymbolPrinter:

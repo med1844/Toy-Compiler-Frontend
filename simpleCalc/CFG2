@@ -1,3 +1,0 @@
-START -> E
-E -> E + T | E - T | - T | T
-T -> ( E ) | int_const

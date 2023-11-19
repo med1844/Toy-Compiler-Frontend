@@ -4,16 +4,16 @@ Back-end for the visualization of the parsing process
 
 from flask import render_template, Flask, request
 from cfg_utils.cfg import ContextFreeGrammar
-from cfg_utils.action_goto_builder import ActionGotoBuilder
-from cfg_utils.lr1_io import LRPrinter
-from cfg_utils.lr1_automata import LRItemSetAutomata
+from lr1.action_goto_builder import ActionGotoBuilder
+from lr1.lr1_io import LRPrinter
+from lr1.lr1_itemset_automata import LRItemSetAutomata
 from lang_def import LangDef
 from lang_def_builder import LangDefBuilder
 import os
 from typing import List, Tuple
-from vis_utils.tree import Tree, TreeNode
+from server_utils.tree import Tree, TreeNode
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="./server_utils/templates/")
 
 
 app.secret_key = os.urandom(16)

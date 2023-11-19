@@ -1,7 +1,7 @@
 from typing import Tuple
 
-from .cfg import ContextFreeGrammar
-from .lr1_automata import LRItemSetAutomata
+from cfg_utils.cfg import ContextFreeGrammar
+from .lr1_itemset_automata import LRItemSetAutomata
 from .action import Action
 from .goto import Goto
 
