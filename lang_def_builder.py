@@ -9,7 +9,8 @@ class LangDefBuilder:
     Also helps reduce boilerplate code."""
 
     @staticmethod
-    def new(cfg: ContextFreeGrammar) -> LangDef:
+    def new(raw_cfg: str) -> LangDef:
+        cfg = ContextFreeGrammar.from_string(raw_cfg)
         action, goto = ActionGotoBuilder.new(cfg, LRItemSetAutomata.new(cfg))
         return LangDef(
             cfg.typedef.get_dfa_set().to_json(),

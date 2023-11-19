@@ -26,12 +26,12 @@ def index():
 
 @app.route("/generateLR", methods=["POST"])
 def generate():
-    rawCFG = request.form["CFG"]
-    cfg = ContextFreeGrammar.from_string(rawCFG)
+    raw_cfg = request.form["CFG"]
+    cfg = ContextFreeGrammar.from_string(raw_cfg)
     lp = LRPrinter(cfg)
 
     app.config["cfg"] = cfg
-    app.config["ld"] = LangDefBuilder.new(cfg)
+    app.config["ld"] = LangDefBuilder.new(raw_cfg)
     app.config["lp"] = lp
 
     lr_automata = LRItemSetAutomata.new(cfg)

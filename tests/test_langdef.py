@@ -4,7 +4,6 @@ from typing import Optional
 from lang_def import LangDef
 from lang_def_builder import LangDefBuilder
 from cfg_utils.type_def import TypeDefinition
-from cfg_utils.cfg import ContextFreeGrammar
 import pytest
 from random import randint, shuffle
 from operator import add, sub, mul
@@ -296,16 +295,15 @@ def test_ld_scanner_3():
 
 @pytest.fixture
 def gen_calc():
-    cfg = ContextFreeGrammar.from_string(
+    ld = LangDefBuilder.new(
         """
         START -> E
         E -> E "+" T | E "-" T | T
         T -> T "*" F | F
         F -> "(" E ")" | int_const
         int_const -> r"0|(-?)[1-9][0-9]*"
-        """,
+        """
     )
-    ld = LangDefBuilder.new(cfg)
 
     @ld.production("E -> T", "T -> F", "F -> int_const")
     def __identity(_, e: int) -> int:

@@ -1,10 +1,8 @@
 from typing import Any, List, Dict, Optional, Set, Tuple, Callable, Iterable
 from collections import deque
-from io_utils.from_json import FromJson
-from io_utils.to_json import ToJson
 
 
-class LangDef(ToJson, FromJson):
+class LangDef:
     """
     A class that captures everything that's required by a compiler front-end, with no dependency.
     This allows things to be portable, i.e. copy json files or embed them, and copy this class.
