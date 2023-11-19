@@ -3,7 +3,10 @@ Back-end for the visualization of the parsing process
 """
 
 from flask import render_template, Flask, request
-from cfg import ContextFreeGrammar, gen_action_todo, LangPrinter
+from cfg_utils.cfg import ContextFreeGrammar
+from cfg_utils.action_goto_builder import ActionGotoBuilder
+from cfg_utils.lr1_io import LRPrinter
+from cfg_utils.lr1_automata import LRItemSetAutomata
 from lang_def import LangDef
 from lang_def_builder import LangDefBuilder
 import os
@@ -25,15 +28,17 @@ def index():
 def generate():
     rawCFG = request.form["CFG"]
     cfg = ContextFreeGrammar.from_string(rawCFG)
-    lp = LangPrinter(cfg)
+    lp = LRPrinter(cfg)
 
     app.config["cfg"] = cfg
     app.config["ld"] = LangDefBuilder.new(cfg)
     app.config["lp"] = lp
 
     dump_dst = []
-    action, goto = gen_action_todo(cfg, dump_dst)
-    item_set_to_id, edges = dump_dst.pop()
+
+    lr_automata = LRItemSetAutomata.new(cfg)
+    item_set_to_id = lr_automata.item_set_to_id
+    action, goto = ActionGotoBuilder.new(cfg, lr_automata)
 
     terminals, non_terminals = sorted(action.terminals), sorted(goto.non_terminals)
     symbols = terminals + non_terminals
@@ -62,7 +67,7 @@ def generate():
     )
 
 
-def parse_pt_n_log(cfg: ContextFreeGrammar, ld: LangDef, lp: LangPrinter, tokens: List[Tuple[int, str]]) -> Tuple[Tree, List[str]]:
+def parse_pt_n_log(cfg: ContextFreeGrammar, ld: LangDef, lp: LRPrinter, tokens: List[Tuple[int, str]]) -> Tuple[Tree, List[str]]:
     log = []
     state_stack = [0]
     node_stack: List[TreeNode] = [

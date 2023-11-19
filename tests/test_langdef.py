@@ -3,8 +3,8 @@ import json
 from typing import Optional
 from lang_def import LangDef
 from lang_def_builder import LangDefBuilder
-from typeDef import TypeDefinition
-from cfg import ContextFreeGrammar
+from cfg_utils.type_def import TypeDefinition
+from cfg_utils.cfg import ContextFreeGrammar
 import pytest
 from random import randint, shuffle
 from operator import add, sub, mul

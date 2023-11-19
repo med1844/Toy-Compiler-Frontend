@@ -1,4 +1,6 @@
-from cfg import ContextFreeGrammar, gen_action_todo
+from cfg_utils.cfg import ContextFreeGrammar
+from cfg_utils.action_goto_builder import ActionGotoBuilder
+from cfg_utils.lr1_automata import LRItemSetAutomata
 from lang_def import LangDef
 
 
@@ -8,7 +10,7 @@ class LangDefBuilder:
 
     @staticmethod
     def new(cfg: ContextFreeGrammar) -> LangDef:
-        action, goto = gen_action_todo(cfg)
+        action, goto = ActionGotoBuilder.new(cfg, LRItemSetAutomata.new(cfg))
         return LangDef(
             cfg.typedef.get_dfa_set().to_json(),
             cfg.raw_grammar_to_id,
