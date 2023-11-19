@@ -34,8 +34,6 @@ def generate():
     app.config["ld"] = LangDefBuilder.new(cfg)
     app.config["lp"] = lp
 
-    dump_dst = []
-
     lr_automata = LRItemSetAutomata.new(cfg)
     item_set_to_id = lr_automata.item_set_to_id
     action, goto = ActionGotoBuilder.new(cfg, lr_automata)
@@ -58,8 +56,7 @@ def generate():
     cfgForFirst = cfg.remove_left_recursion() if cfg.is_left_recursive() else cfg
     firstDict = cfgForFirst.first()
     firstSet = {
-        k: ", ".join([lp.to_string(sym) for sym in v])
-        for k, v in firstDict.items()
+        k: ", ".join([lp.to_string(sym) for sym in v]) for k, v in firstDict.items()
     }
 
     return render_template(
@@ -67,7 +64,9 @@ def generate():
     )
 
 
-def parse_pt_n_log(cfg: ContextFreeGrammar, ld: LangDef, lp: LRPrinter, tokens: List[Tuple[int, str]]) -> Tuple[Tree, List[str]]:
+def parse_pt_n_log(
+    cfg: ContextFreeGrammar, ld: LangDef, lp: LRPrinter, tokens: List[Tuple[int, str]]
+) -> Tuple[Tree, List[str]]:
     log = []
     state_stack = [0]
     node_stack: List[TreeNode] = [
@@ -85,13 +84,30 @@ def parse_pt_n_log(cfg: ContextFreeGrammar, ld: LangDef, lp: LRPrinter, tokens: 
             if action_type == 0:  # shift to another state
                 state_stack.append(next_state)
                 node_stack.append(TreeNode(lex_str))
-                log.append((str(state_stack), str(node_stack), "Shift to state %d" % next_state))
+                log.append(
+                    (
+                        str(state_stack),
+                        str(node_stack),
+                        "Shift to state %d" % next_state,
+                    )
+                )
                 break
             elif action_type == 1:
                 prod_id: int = next_state
                 non_terminal, sequence = cfg.get_production(prod_id)
                 nargs = len(sequence)
-                log.append((str(state_stack), str(node_stack), "Reduce using production %d: %s -> %s" % (prod_id, non_terminal, " ".join(lp.to_string(v) for v in sequence))))
+                log.append(
+                    (
+                        str(state_stack),
+                        str(node_stack),
+                        "Reduce using production %d: %s -> %s"
+                        % (
+                            prod_id,
+                            non_terminal,
+                            " ".join(lp.to_string(v) for v in sequence),
+                        ),
+                    )
+                )
                 non_terminal_node = TreeNode(non_terminal)
                 for _ in range(nargs):
                     state_stack.pop()

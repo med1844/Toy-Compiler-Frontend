@@ -2,8 +2,7 @@ from typing import List, Tuple
 
 
 class TreeNode:
-
-    def __init__(self, val: str, split_len = 3):
+    def __init__(self, val: str, split_len=3):
         self.val = val
         self.childs: List["TreeNode"] = []
         self.split_len = split_len
@@ -47,11 +46,20 @@ class TreeNode:
                         rc[line].append(cc[line])
                     else:
                         rc[line].append(" " * w[i])
-                rc_str.append(" " * leftMargin + (" " * self.split_len).join(rc[line]) + " " * rightMargin)
-            tot_slash = (wa - firstLLen - lastRLen)
+                rc_str.append(
+                    " " * leftMargin
+                    + (" " * self.split_len).join(rc[line])
+                    + " " * rightMargin
+                )
+            tot_slash = wa - firstLLen - lastRLen
             lts = (tot_slash - 1) >> 1
             rts = tot_slash - lts - 1
-            firstLine = "%s%s|%s%s" % (" " * firstLLen, "_" * lts, "_" * rts, " " * lastRLen)
+            firstLine = "%s%s|%s%s" % (
+                " " * firstLLen,
+                "_" * lts,
+                "_" * rts,
+                " " * lastRLen,
+            )
             ret3 = firstLLen + lts
             if len(val) > tot_slash:
                 morePart = len(val) - tot_slash
@@ -109,7 +117,11 @@ class TreeNode:
                     c[i] = c[i] + " " * rmp
                 w += rmp
                 lastRLen = r_start_col
-            zeroLine = "%s%s%s" % (" " * (firstLLen - l_start_col), val, " " * (lastRLen - r_start_col))
+            zeroLine = "%s%s%s" % (
+                " " * (firstLLen - l_start_col),
+                val,
+                " " * (lastRLen - r_start_col),
+            )
             firstLine = "%s|%s" % (" " * firstLLen, " " * (lastRLen - 1))
             result = [zeroLine, firstLine]
             result.extend(c)
@@ -125,5 +137,4 @@ class Tree:
 
     def __str__(self):
         c, _, _, _ = self.root.format()
-        return '\n'.join(c)
-
+        return "\n".join(c)

@@ -1,4 +1,4 @@
-from typing import Set, Iterable
+from typing import Iterable
 from dfa_utils.finite_automata import FiniteAutomata
 from dfa_utils.finite_automata_node import EpsilonTransition, FiniteAutomataNode
 from io_utils.to_json import ToJson

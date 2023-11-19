@@ -15,9 +15,7 @@ class Goto(ToJson):
         self.state_count = state_count
         self.non_terminals = cfg.non_terminals
         self.table: List[Dict[str, Optional[int]]] = (
-            [{} for _ in range(self.state_count)]
-            if table is None
-            else table
+            [{} for _ in range(self.state_count)] if table is None else table
         )
 
     def __getitem__(self, item: int):

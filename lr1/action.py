@@ -10,12 +10,7 @@ class Action(ToJson):
         self.state_count = stateCount
         self.terminals = cfg.terminals | {cfg.EOF}
         self.table: List[Dict[str, Optional[Tuple[int, int]]]] = (
-            [
-                {}
-                for _ in range(self.state_count)
-            ]
-            if table is None
-            else table
+            [{} for _ in range(self.state_count)] if table is None else table
         )
 
     def __getitem__(self, item):

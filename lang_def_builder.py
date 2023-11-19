@@ -18,4 +18,3 @@ class LangDefBuilder:
             action.to_json(),
             goto.to_json(),
         )
-

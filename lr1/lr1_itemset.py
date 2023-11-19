@@ -5,7 +5,6 @@ from collections import deque
 
 
 class LRItemSet:
-
     def __init__(self):
         self.items: Set[LRItem] = set()
         self.__recalc_hash_flag = True  # lazy tag
@@ -55,7 +54,12 @@ class LRItemSet:
             result.add_lr_item(item.move_dot_forward())
         return result
 
-    def calc_closure(self, cfg: ContextFreeGrammar, first_dict: Dict, seq_to_first_cache: Dict[Tuple[str | int, ...], Set[int]] = dict()) -> Self:
+    def calc_closure(
+        self,
+        cfg: ContextFreeGrammar,
+        first_dict: Dict,
+        seq_to_first_cache: Dict[Tuple[str | int, ...], Set[int]] = dict(),
+    ) -> Self:
         """
         Return a new LRItemSet, which is the closure of self.
         """
@@ -80,7 +84,9 @@ class LRItemSet:
                 for new_prod in new_prods:
                     if new_prod not in seq_to_first_cache:
                         first_set = set()
-                        cfg.gen_first_set_of_sequence(first_set, non_terminal, new_prod, first_dict)
+                        cfg.gen_first_set_of_sequence(
+                            first_set, non_terminal, new_prod, first_dict
+                        )
                         seq_to_first_cache[new_prod] = first_set
                     first_set = seq_to_first_cache[new_prod]
                     for production_id in cfg.get_productions(cur_symbol):
@@ -92,5 +98,7 @@ class LRItemSet:
 
         result = LRItemSet()
         for (prod_id, dot_pos), v in record.items():
-            result.add_lr_item(LRItem(prod_id, {val for val in v if val != ''}, dot_pos))
+            result.add_lr_item(
+                LRItem(prod_id, {val for val in v if val != ""}, dot_pos)
+            )
         return result

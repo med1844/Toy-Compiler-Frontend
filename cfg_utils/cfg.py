@@ -19,14 +19,15 @@ class ContextFreeGrammar:
 
     @staticmethod
     def parse_terminal(terminal: str) -> Tuple[str, bool]:
-        if (terminal.startswith('"') and terminal.endswith('"')) \
-            or (terminal.startswith("'") and terminal.endswith("'")):
+        if (terminal.startswith('"') and terminal.endswith('"')) or (
+            terminal.startswith("'") and terminal.endswith("'")
+        ):
             return terminal[1:-1], False
-        elif (terminal.startswith('r"') and terminal.endswith('"')) \
-            or (terminal.startswith("r'") and terminal.endswith("'")):
+        elif (terminal.startswith('r"') and terminal.endswith('"')) or (
+            terminal.startswith("r'") and terminal.endswith("'")
+        ):
             return terminal[2:-1], True
         assert False
-
 
     @classmethod
     def from_string(cls, string: str) -> Self:
@@ -95,7 +96,12 @@ class ContextFreeGrammar:
         }
 
         return cls(
-            typedef, terminals_id, non_terminals, start_symbol, grammar_to_id, raw_grammar_to_id
+            typedef,
+            terminals_id,
+            non_terminals,
+            start_symbol,
+            grammar_to_id,
+            raw_grammar_to_id,
         )
 
     def __init__(
@@ -153,7 +159,10 @@ class ContextFreeGrammar:
     def prod_id_to_nargs_and_non_terminal(self) -> Dict[str, Tuple[int, str]]:
         """A helper function solely for LangDef"""
         return {
-            str(k): (sum(map(lambda *_: 1, filter(lambda x: x != "''", seq))), non_terminal)
+            str(k): (
+                sum(map(lambda *_: 1, filter(lambda x: x != "''", seq))),
+                non_terminal,
+            )
             for k, (non_terminal, seq) in self.id_to_grammar.items()
         }
 
@@ -257,7 +266,11 @@ class ContextFreeGrammar:
         return hasEmpty
 
     def gen_first_set_of_sequence(
-        self, result: Set[str | int], non_terminal: str, sequence: Iterable[str | int], first_dict=None
+        self,
+        result: Set[str | int],
+        non_terminal: str,
+        sequence: Iterable[str | int],
+        first_dict=None,
     ) -> bool:
         """
         Calculate the first set of given sequence and cfg.
@@ -310,8 +323,8 @@ class ContextFreeGrammar:
                     assert isinstance(sym, str)
                     has_non_terminal = True
                     if sym != non_terminal:
-                        all_non_terminal_has_empty &= self.update_non_terminal_first_set(
-                            result, sym
+                        all_non_terminal_has_empty &= (
+                            self.update_non_terminal_first_set(result, sym)
                         )
                         result[non_terminal] |= result[sym]
                         if not all_non_terminal_has_empty:
@@ -337,4 +350,3 @@ class ContextFreeGrammar:
             if not result[non]:
                 self.update_non_terminal_first_set(result, non)
         return result
-

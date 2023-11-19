@@ -1,6 +1,5 @@
 from cfg_utils.cfg import ContextFreeGrammar
-from typing import Set, Optional, Self, Dict, Tuple
-from collections import deque
+from typing import Set, Optional, Self
 
 
 class LRItem:
@@ -60,4 +59,3 @@ class LRItem:
     def at_end(self, cfg: ContextFreeGrammar) -> bool:
         prod = cfg.get_production(self.production_id)[1]
         return len(prod) == self.dot_pos or prod == ("",)
-

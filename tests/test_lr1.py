@@ -5,11 +5,19 @@ from lr1.lr1_io import LRItemSetPrinter, LRItemSetParser, LRItemParser, SymbolPa
 
 
 def test_lr1_io_split_lookforward():
-    assert list(LRItemParser.look_forward_tokenizer(r'"("/"*"/$/r"\"[^\"]*\""/r"\'[^\']\'"')) == [
-        '"("', '"*"', '$', r'r"\"[^\"]*\""', r'r"\'[^\']\'"'
-    ]
-    assert list(LRItemParser.look_forward_tokenizer(r'","/"."/r"([a-zA-Z]|\_)([a-zA-Z]|[0-9]|\_)*"/r"\"[^\"]*\""/r"\'[^\']*\'"')) == [
-        '","', '"."', r'r"([a-zA-Z]|\_)([a-zA-Z]|[0-9]|\_)*"', r'r"\"[^\"]*\""', r'r"\'[^\']*\'"'
+    assert list(
+        LRItemParser.look_forward_tokenizer(r'"("/"*"/$/r"\"[^\"]*\""/r"\'[^\']\'"')
+    ) == ['"("', '"*"', "$", r'r"\"[^\"]*\""', r'r"\'[^\']\'"']
+    assert list(
+        LRItemParser.look_forward_tokenizer(
+            r'","/"."/r"([a-zA-Z]|\_)([a-zA-Z]|[0-9]|\_)*"/r"\"[^\"]*\""/r"\'[^\']*\'"'
+        )
+    ) == [
+        '","',
+        '"."',
+        r'r"([a-zA-Z]|\_)([a-zA-Z]|[0-9]|\_)*"',
+        r'r"\"[^\"]*\""',
+        r'r"\'[^\']*\'"',
     ]
 
 
@@ -23,7 +31,10 @@ def test_lr1_io_identity_0():
     )
     lr_automata = LRItemSetAutomata.new(cfg)
     for item_set in lr_automata.item_set_to_id.keys():
-        assert LRItemSetParser.from_string(cfg, LRItemSetPrinter.to_string(cfg, item_set)) == item_set
+        assert (
+            LRItemSetParser.from_string(cfg, LRItemSetPrinter.to_string(cfg, item_set))
+            == item_set
+        )
 
 
 def test_lr1_io_identity_1():
@@ -42,7 +53,10 @@ def test_lr1_io_identity_1():
     )
     lr_automata = LRItemSetAutomata.new(cfg)
     for item_set in lr_automata.item_set_to_id.keys():
-        assert LRItemSetParser.from_string(cfg, LRItemSetPrinter.to_string(cfg, item_set)) == item_set
+        assert (
+            LRItemSetParser.from_string(cfg, LRItemSetPrinter.to_string(cfg, item_set))
+            == item_set
+        )
 
 
 def test_lr1_io_identity_2():
@@ -61,7 +75,10 @@ def test_lr1_io_identity_2():
     )
     lr_automata = LRItemSetAutomata.new(cfg)
     for item_set in lr_automata.item_set_to_id.keys():
-        assert LRItemSetParser.from_string(cfg, LRItemSetPrinter.to_string(cfg, item_set)) == item_set
+        assert (
+            LRItemSetParser.from_string(cfg, LRItemSetPrinter.to_string(cfg, item_set))
+            == item_set
+        )
 
 
 def test_lr1_table_0():
@@ -82,13 +99,13 @@ def test_lr1_table_0():
             S ->  ◦ A, $
             A ->  ◦ '', $/"a"/"b"
             A ->  ◦ A B, $/"a"/"b"
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             START -> S ◦ , $
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
@@ -97,19 +114,19 @@ def test_lr1_table_0():
             B ->  ◦ "a" B, $/"a"/"b"
             B ->  ◦ "b", $/"a"/"b"
             S -> A ◦ , $
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             B -> "b" ◦ , $/"a"/"b"
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             A -> A B ◦ , $/"a"/"b"
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
@@ -117,13 +134,13 @@ def test_lr1_table_0():
             B -> "a" ◦ B, $/"a"/"b"
             B ->  ◦ "a" B, $/"a"/"b"
             B ->  ◦ "b", $/"a"/"b"
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             B -> "a" B ◦ , $/"a"/"b"
-            """
+            """,
         ),
     ]
     assert set(lr_automata.item_set_to_id.keys()) == set(expected_item_sets)
@@ -161,13 +178,13 @@ def test_lr1_table_1():
             S ->  ◦ B B, $
             B ->  ◦ "b" B, "a"/"b"
             B ->  ◦ "a", "a"/"b"
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             START -> S ◦ , $
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
@@ -175,7 +192,7 @@ def test_lr1_table_1():
             S -> B ◦ B, $
             B ->  ◦ "b" B, $
             B ->  ◦ "a", $
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
@@ -183,19 +200,19 @@ def test_lr1_table_1():
             B -> "b" ◦ B, "b"/"a"
             B ->  ◦ "b" B, "b"/"a"
             B ->  ◦ "a", "b"/"a"
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             B -> "a" ◦ , "b"/"a"
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             S -> B B ◦ , $
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
@@ -203,25 +220,25 @@ def test_lr1_table_1():
             B -> "b" ◦ B, $
             B ->  ◦ "b" B, $
             B ->  ◦ "a", $
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             B -> "b" B ◦ , $
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             B -> "a" ◦ , $
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             B -> "b" B ◦ , "b"/"a"
-            """
+            """,
         ),
     ]
     assert set(lr_automata.item_set_to_id.keys()) == set(expected_item_sets)
@@ -266,38 +283,38 @@ def test_lr1_table_2():
             Z ->  ◦ "d" "c", $
             Z ->  ◦ "b" "d" "a", $
             A ->  ◦ "d", "a"
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             START -> Z ◦ , $
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             Z -> "d" ◦ "c", $
             A -> "d" ◦ , "a"
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             Z -> "d" "c" ◦ , $
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             Z -> A ◦ "a", $
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             Z -> A "a" ◦ , $
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
@@ -305,32 +322,32 @@ def test_lr1_table_2():
             Z -> "b" ◦ A "c", $
             A ->  ◦ "d", "c"
             Z -> "b" ◦ "d" "a", $
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             A -> "d" ◦ , "c"
             Z -> "b" "d" ◦ "a", $
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             Z -> "b" "d" "a" ◦ , $
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             Z -> "b" A ◦ "c", $
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             Z -> "b" A "c" ◦ , $
-            """
+            """,
         ),
     ]
     assert set(lr_automata.item_set_to_id.keys()) == set(expected_item_sets)
@@ -370,19 +387,19 @@ def test_lr1_table_3():
             L ->  ◦ M L "b", $
             L ->  ◦ "a", $
             M ->  ◦ '', "a"
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             START -> L ◦ , $
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             L -> "a" ◦ , $
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
@@ -391,7 +408,7 @@ def test_lr1_table_3():
             L ->  ◦ M L "b", "b"
             L ->  ◦ "a", "b"
             M ->  ◦ '', "a"
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
@@ -400,37 +417,37 @@ def test_lr1_table_3():
             L ->  ◦ M L "b", "b"
             L ->  ◦ "a", "b"
             M ->  ◦ '', "a"
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             L -> "a" ◦ , "b"
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             L -> M L ◦ "b", $
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             L -> M L "b" ◦ , $
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             L -> M L ◦ "b", "b"
-            """
+            """,
         ),
         LRItemSetParser.from_string(
             cfg,
             """
             L -> M L "b" ◦ , "b"
-            """
+            """,
         ),
     ]
     assert set(lr_automata.item_set_to_id.keys()) == set(expected_item_sets)
@@ -452,4 +469,3 @@ def test_lr1_table_3():
         j = lr_automata.item_set_to_id[expected_item_sets[dst]]
         assert (SymbolParser.from_string(cfg, edge), j) in lr_automata.edges[i]
     assert sum(len(v) for v in lr_automata.edges.values()) == len(expected_edges)
-

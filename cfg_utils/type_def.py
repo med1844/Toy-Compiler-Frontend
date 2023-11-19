@@ -10,7 +10,7 @@ class TypeDefinition:
     """
 
     def __init__(self):
-        self.patterns: List[Tuple[str, bool]] = [] # (is_regex, pattern)
+        self.patterns: List[Tuple[str, bool]] = []  # (is_regex, pattern)
         self.pattern_to_id: Dict[str, int] = {}  # map name to integer id
 
     def __str__(self):
@@ -27,7 +27,9 @@ class TypeDefinition:
         return FiniteAutomataSet(
             list(
                 map(
-                    lambda r: FiniteAutomata.from_string(r[0], minimize=True) if r[1] else FiniteAutomata.from_literal(r[0]),
+                    lambda r: FiniteAutomata.from_string(r[0], minimize=True)
+                    if r[1]
+                    else FiniteAutomata.from_literal(r[0]),
                     self.patterns,
                 )
             )

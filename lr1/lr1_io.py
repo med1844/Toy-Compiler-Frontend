@@ -21,17 +21,27 @@ class LRItemPrinter:
     @staticmethod
     def to_string(cfg: ContextFreeGrammar, item: LRItem) -> str:
         non, seq = cfg.get_production(item.production_id)
-        seqStr = " ".join(SymbolPrinter.to_string(cfg.typedef, _) for _ in seq[:item.dot_pos]) \
-               + " ◦ " \
-               + " ".join(SymbolPrinter.to_string(cfg.typedef, _) for _ in seq[item.dot_pos:])
-        lfStr = "%s" % "/".join(sorted(SymbolPrinter.to_string(cfg.typedef, _) for _ in item.look_forward))
+        seqStr = (
+            " ".join(
+                SymbolPrinter.to_string(cfg.typedef, _) for _ in seq[: item.dot_pos]
+            )
+            + " ◦ "
+            + " ".join(
+                SymbolPrinter.to_string(cfg.typedef, _) for _ in seq[item.dot_pos :]
+            )
+        )
+        lfStr = "%s" % "/".join(
+            sorted(SymbolPrinter.to_string(cfg.typedef, _) for _ in item.look_forward)
+        )
         return "%s -> %s, %s" % (non, seqStr, lfStr)
 
 
 class LRItemSetPrinter:
     @staticmethod
     def to_string(cfg: ContextFreeGrammar, item_set: LRItemSet) -> str:
-        return '\n'.join(sorted(LRItemPrinter.to_string(cfg, item) for item in item_set.items))
+        return "\n".join(
+            sorted(LRItemPrinter.to_string(cfg, item) for item in item_set.items)
+        )
 
 
 class LRPrinter:
@@ -93,8 +103,18 @@ class LRItemParser:
         dot_seq, look_forward = rest.split(", ")
         seq_l, seq_r = dot_seq.split(" ◦ ")
         dot_pos = 0 if seq_l.split(" ") == [""] else len(seq_l.split(" "))
-        seq = tuple(SymbolParser.from_string(cfg, sym) for sym in " ".join((seq_l, seq_r)).strip().split(" "))
-        return LRItem(cfg.grammar_to_id[(non, seq)], set(SymbolParser.from_string(cfg, sym) for sym in cls.look_forward_tokenizer(look_forward)), dot_pos)
+        seq = tuple(
+            SymbolParser.from_string(cfg, sym)
+            for sym in " ".join((seq_l, seq_r)).strip().split(" ")
+        )
+        return LRItem(
+            cfg.grammar_to_id[(non, seq)],
+            set(
+                SymbolParser.from_string(cfg, sym)
+                for sym in cls.look_forward_tokenizer(look_forward)
+            ),
+            dot_pos,
+        )
 
 
 # impl From<&str> for LRItemSet

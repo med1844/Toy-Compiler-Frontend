@@ -8,3 +8,4 @@ in
 *.exe
 *.obj
 .venv
+poetry.lock

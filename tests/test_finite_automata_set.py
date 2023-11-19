@@ -3,19 +3,23 @@ from dfa_utils.finite_automata_set import FiniteAutomataSet
 
 
 def test_fa_set_match_one_0():
-    s = FiniteAutomataSet([
-        FiniteAutomata.from_string("aa"),
-        FiniteAutomata.from_string("a"),
-    ])
+    s = FiniteAutomataSet(
+        [
+            FiniteAutomata.from_string("aa"),
+            FiniteAutomata.from_string("a"),
+        ]
+    )
 
     assert s.match_one("aaa") == "aa"
 
 
 def test_fa_set_match_one_1():
-    s = FiniteAutomataSet([
-        FiniteAutomata.from_string("a"),
-        FiniteAutomata.from_string("aa"),
-    ])
+    s = FiniteAutomataSet(
+        [
+            FiniteAutomata.from_string("a"),
+            FiniteAutomata.from_string("aa"),
+        ]
+    )
 
     assert s.match_one("aaa") == "aa"
 
@@ -28,7 +32,7 @@ def test_fa_set_match_one_2():
             FiniteAutomata.from_string(r"\*"),
             FiniteAutomata.from_string(r"\("),
             FiniteAutomata.from_string(r"\)"),
-            FiniteAutomata.from_string(r"0|(-?)[1-9][0-9]*")
+            FiniteAutomata.from_string(r"0|(-?)[1-9][0-9]*"),
         ]
     )
 

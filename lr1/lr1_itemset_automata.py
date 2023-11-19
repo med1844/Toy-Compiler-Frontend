@@ -7,7 +7,11 @@ from .lr1_itemset import LRItemSet
 
 
 class LRItemSetAutomata:
-    def __init__(self, item_set_to_id: Dict[LRItemSet, int], edges: Dict[int, Tuple[str | int, int]]) -> None:
+    def __init__(
+        self,
+        item_set_to_id: Dict[LRItemSet, int],
+        edges: Dict[int, Tuple[str | int, int]],
+    ) -> None:
         self.item_set_to_id = item_set_to_id
         self.edges = edges
 
@@ -41,7 +45,9 @@ class LRItemSetAutomata:
                 next_item_set_core = cur.goto(step)  # get the core first
 
                 if next_item_set_core not in core_to_closure:
-                    core_to_closure[next_item_set_core] = next_item_set_core.calc_closure(
+                    core_to_closure[
+                        next_item_set_core
+                    ] = next_item_set_core.calc_closure(
                         cfg, first_dict, seq_to_first_cache
                     )
                 next_item_set = core_to_closure[next_item_set_core]

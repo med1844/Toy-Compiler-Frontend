@@ -34,7 +34,7 @@ class LangDef(ToJson, FromJson):
         self.goto_json = goto_json
 
         self.prod_id_to_fn: Dict[str, Callable] = {}  # this member won't be exported
-            # but still, use same convention that key is str
+        # but still, use same convention that key is str
 
     def production(self, *productions: str):
         """
@@ -127,7 +127,9 @@ class LangDef(ToJson, FromJson):
                     break
                 elif action_type == 1:
                     prod_id: int = next_state
-                    nargs, non_terminal = self.prod_id_to_narg_and_non_terminal[str(prod_id)]
+                    nargs, non_terminal = self.prod_id_to_narg_and_non_terminal[
+                        str(prod_id)
+                    ]
                     fn = self.prod_id_to_fn[str(prod_id)]
                     args = []
                     for _ in range(nargs):

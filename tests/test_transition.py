@@ -7,7 +7,7 @@ def test_epsilon_transition():
     assert a == b
 
     for i in range(0, 1000):
-        assert a(chr(i)) == True
+        assert a(chr(i))
 
 
 def test_char_transition():

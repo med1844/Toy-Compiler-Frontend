@@ -388,11 +388,17 @@ def test_calc(gen_calc: LangDef):
                 if node.l is None and node.r is None:
                     return "%d" % node.val
                 else:
-                    return "(%s %s %s)" % (gen_exp(node.l), "+-*"[node.val - 1000], gen_exp(node.r))
+                    return "(%s %s %s)" % (
+                        gen_exp(node.l),
+                        "+-*"[node.val - 1000],
+                        gen_exp(node.r),
+                    )
 
     def eval_node(node: ExpNode) -> int:
         if node.l is not None and node.r is not None:
-            return (add, sub, mul)[node.val - 1000](eval_node(node.l), eval_node(node.r))
+            return (add, sub, mul)[node.val - 1000](
+                eval_node(node.l), eval_node(node.r)
+            )
         else:
             return node.val
 

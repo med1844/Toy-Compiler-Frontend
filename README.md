@@ -147,7 +147,7 @@ We provided a web app that could print out the content of each LR(1) item set, a
 
 ![webapp](webapp.svg)
 
-The screenshot shows the parsing result of this expression: 
+The screenshot shows the parsing result of this expression:
 
 ```lisp
 (define (even? x)
