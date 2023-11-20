@@ -417,6 +417,8 @@ class FiniteAutomata(ToJson):
 
 
 class NFANodeRegexOperation(RegexOperation):
+    MAX_CHAR = 0x7F
+
     # impl RegexOperation<NFA>
     @staticmethod
     def make_nfa(c: str) -> FiniteAutomata:
@@ -434,7 +436,7 @@ class NFANodeRegexOperation(RegexOperation):
             for r in ranges:
                 compl_ranges.append(range(start, r.start))
                 start = r.stop
-            compl_ranges.append(range(start, 0x7F))
+            compl_ranges.append(range(start, cls.MAX_CHAR))
             ranges = tuple(compl_ranges)
         s = FiniteAutomataNode()
         e = FiniteAutomataNode()
@@ -450,7 +452,9 @@ class NFANodeRegexOperation(RegexOperation):
 
     @classmethod
     def make_inverse_nfa(cls, s: str) -> FiniteAutomata:
-        return cls.make_range_nfa(range(cls.START, ord(s)), range(ord(s) + 1, 0x7F))
+        return cls.make_range_nfa(
+            range(cls.START, ord(s)), range(ord(s) + 1, cls.MAX_CHAR)
+        )
 
     @classmethod
     def kleene_star(cls, r: FiniteAutomata) -> FiniteAutomata:
