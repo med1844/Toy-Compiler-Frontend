@@ -15,7 +15,7 @@ def test_ld_scanner_0():
     typedef.add_definition("mut")
     typedef.add_definition("([a-zA-Z]|_)([0-9a-zA-Z]|_)*", True)
     ld = LangDef(typedef.get_dfa_set().to_json(), {}, {}, {}, {})
-    assert ld.scan("mut") == [(0, "mut"), (-1, "$")]
+    assert list(ld.scan("mut")) == [(0, "mut"), (-1, "$")]
 
 
 def test_ld_scanner_1():
@@ -23,7 +23,7 @@ def test_ld_scanner_1():
     typedef.add_definition("'([a-zA-Z]|_)([0-9a-zA-Z]|_)*", True)
     typedef.add_definition("'.'", True)
     ld = LangDef(typedef.get_dfa_set().to_json(), {}, {}, {}, {})
-    assert ld.scan("'a '5' 'b 'c'") == [
+    assert list(ld.scan("'a '5' 'b 'c'")) == [
         (0, "'a"),
         (1, "'5'"),
         (0, "'b"),
@@ -105,7 +105,7 @@ def test_ld_scanner_2():
             ],
         ),
     ):
-        assert ld.scan(in_) == out
+        assert list(ld.scan(in_)) == out
 
 
 def test_ld_scanner_3():
@@ -142,23 +142,26 @@ def test_ld_scanner_3():
     ld = LangDef(typedef.get_dfa_set().to_json(), {}, {}, {}, {})
 
     assert (
-        ld.scan(
-            """fn game_of_life(board: &mut Vec<Vec<i32>>) {
-        for i in 0..board.len() {
-            for j in 0..board.get(0).unwrap().len() {
-                board[i][j] |= Self::get_cell_next_state(
-                    board[i][j],
-                    Self::get_live_neighbor_num(board, i, j),
-                ) << 1;
+        list(
+            ld.scan(
+                """
+            fn game_of_life(board: &mut Vec<Vec<i32>>) {
+                for i in 0..board.len() {
+                    for j in 0..board.get(0).unwrap().len() {
+                        board[i][j] |= Self::get_cell_next_state(
+                            board[i][j],
+                            Self::get_live_neighbor_num(board, i, j),
+                        ) << 1;
+                    }
+                }
+                for i in 0..board.len() {
+                    for j in 0..board.get(0).unwrap().len() {
+                        board[i][j] >>= 1;
+                    }
+                }
             }
-        }
-        for i in 0..board.len() {
-            for j in 0..board.get(0).unwrap().len() {
-                board[i][j] >>= 1;
-            }
-        }
-    }
-    """
+            """
+            )
         )
         == [
             (0, "fn"),
@@ -290,6 +293,79 @@ def test_ld_scanner_3():
             (6, "}"),
             (-1, "$"),
         ]
+    )
+
+
+def test_ld_scanner_with_undefined_char_0():
+    typedef = TypeDefinition()
+    # use a lang with limited char set, e.g. brainfuck
+    typedef.add_definition("<")
+    typedef.add_definition(">")
+    typedef.add_definition("+")
+    typedef.add_definition("-")
+    typedef.add_definition(".")
+    typedef.add_definition(",")
+    typedef.add_definition("[")
+    typedef.add_definition("]")
+
+    char_to_id = {c: i for i, c in enumerate("<>+-.,[]")}
+
+    ld = LangDef(typedef.get_dfa_set().to_json(), {}, {}, {}, {})
+    assert (
+        list(
+            ld.scan(
+                # from wikipedia of brainfuck, hello world section
+                """
+        ++++++++               Set Cell #0 to 8
+        [
+            >++++               Add 4 to Cell #1; this will always set Cell #1 to 4
+            [                   as the cell will be cleared by the loop
+                >++             Add 2 to Cell #2
+                >+++            Add 3 to Cell #3
+                >+++            Add 3 to Cell #4
+                >+              Add 1 to Cell #5
+                <<<<-           Decrement the loop counter in Cell #1
+            ]                   Loop until Cell #1 is zero; number of iterations is 4
+            >+                  Add 1 to Cell #2
+            >+                  Add 1 to Cell #3
+            >-                  Subtract 1 from Cell #4
+            >>+                 Add 1 to Cell #6
+            [<]                 Move back to the first zero cell you find; this will
+                                be Cell #1 which was cleared by the previous loop
+            <-                  Decrement the loop Counter in Cell #0
+        ]                       Loop until Cell #0 is zero; number of iterations is 8
+        """
+            )
+        )
+        == [
+            (char_to_id[c], c)
+            for c in "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]"
+        ]
+        + [(-1, "$")]
+    )
+
+
+def test_ld_scanner_with_undefined_char_1():
+    typedef = TypeDefinition()
+    typedef.add_definition("+")
+    typedef.add_definition("-")
+    typedef.add_definition("*")
+    typedef.add_definition("(")
+    typedef.add_definition(")")
+    typedef.add_definition(r"0|(-?)[1-9][0-9]*", True)
+
+    char_to_id = {c: i for i, c in enumerate("+-*()")}
+
+    ld = LangDef(typedef.get_dfa_set().to_json(), {}, {}, {}, {})
+    assert (
+        list(
+            ld.scan(
+                """
+        let mut a = 3 + 5 * (5 - 7);
+        """
+            )
+        )
+        == [(char_to_id.get(c, 5), c) for c in "3+5*(5-7)"] + [(-1, "$")]
     )
 
 

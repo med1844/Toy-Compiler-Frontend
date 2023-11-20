@@ -1,4 +1,4 @@
-from typing import Any, List, Dict, Optional, Set, Tuple, Callable, Iterable
+from typing import Any, Deque, List, Dict, Optional, Set, Tuple, Callable, Iterable
 from collections import deque
 
 
@@ -16,7 +16,6 @@ class LangDef:
     When build from scratch, put typedef.to_json(), action.to_json(), and goto.to_json() here.
     """
 
-    # TODO: further split into things like `trait JsonScanner`, `train JsonParser`, etc
     def __init__(
         self,
         dfa_set_json: Dict[str, Any],
@@ -51,14 +50,15 @@ class LangDef:
         return decorate
 
     @staticmethod
-    def match_one(dfa: Dict[str, Any], s: Iterable[str]) -> Tuple[int, str]:
+    def match_one(dfa: Dict[str, Any], s: Deque[str]) -> Tuple[int, str]:
         cur_node: int = dfa["start_node"]
         accept_states: Set[int] = set(dfa["accept_states"])
         fa_id: List[Optional[int]] = dfa["fa_id"]
         buffer = []
         accepted_buffer = []
         last_accept_state_fa_id: Optional[int] = None
-        for c in s:
+        while s:
+            c = s.popleft()
             any_hit = False
             if cur_node in accept_states:
                 if fa_id[cur_node] is not None:
@@ -76,6 +76,7 @@ class LangDef:
                     any_hit = True
                     break
             if not any_hit:
+                s.appendleft(c)
                 break
         if cur_node in accept_states:
             if fa_id[cur_node] is not None:
@@ -86,21 +87,21 @@ class LangDef:
             return (last_accept_state_fa_id, "".join(accepted_buffer))
         return (-1, "")
 
-    def scan(self, s: str) -> List[Tuple[int, str]]:
-        tokens = []
+    def scan(self, s: str) -> Iterable[Tuple[int, str]]:
         deque_s = deque(s)
         while deque_s:
             (id, word) = self.match_one(self.dfa_set_json, deque_s)
             if word:
-                tokens.append((id, word))
-            for _ in range(len(word)):
-                deque_s.popleft()
+                yield id, word
+            else:
+                deque_s.popleft()  # if no match, simply move forward, in order to consume all input
             while deque_s and deque_s[0] in {" ", "\t", "\n"}:
                 deque_s.popleft()
-        tokens.append((-1, "$"))
-        return tokens
+        yield -1, "$"
 
-    def parse(self, tokens: List[Tuple[int, str]], context: Dict[str, Any] = dict()):
+    def parse(
+        self, tokens: Iterable[Tuple[int, str]], context: Dict[str, Any] = dict()
+    ):
         # context stores all things that you wish to transfer between parses
         # examples:
         # - stored variables
