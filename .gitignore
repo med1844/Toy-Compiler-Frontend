@@ -8,3 +8,4 @@ in
 *.exe
 *.obj
 .venv
+examples/subset_rust_highlighting.py

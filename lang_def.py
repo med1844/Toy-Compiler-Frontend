@@ -115,8 +115,11 @@ class LangDef:
         for token_type, lex_str in tokens:
             current_state = state_stack[-1]
             while True:
-                if self.action_json["table"][current_state][str(token_type)] is None:
-                    raise ValueError("ERROR: %s, %s" % (current_state, str(token_type)))
+                if (
+                    self.action_json["table"][current_state].get(str(token_type), None)
+                    is None
+                ):
+                    break
                 action_type, next_state = self.action_json["table"][current_state][
                     str(token_type)
                 ]

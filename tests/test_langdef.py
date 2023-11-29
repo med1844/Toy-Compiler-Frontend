@@ -480,3 +480,35 @@ def test_calc(gen_calc: LangDef):
     exp = gen_exp(root)
     val = eval_node(root)
     assert gen_calc.eval(exp) == val
+
+
+# currently it's still not supported... requires further investigation.
+# def test_ld_parser_mini_grammar_0():
+#     # test if the lr(1) parser satisfies this requirement in rust-analyzer syntax tree:
+#     # - Parsing is resilient (even if the input is invalid, parser tries to see as much
+#     #   syntax tree fragments in the input as it can).
+#     ld = LangDefBuilder.new(
+#         """
+#         START -> func_call
+#         func_call -> id "(" args ")"
+#         args -> arg "," args | arg
+#         arg -> id ":" type
+#         id -> r"([a-zA-Z]|_)([a-zA-Z0-9]|_)*"
+#         type -> "usize" | "i32"
+#         """
+#     )
+
+#     @ld.production(
+#         "START -> func_call",
+#         'func_call -> id "(" args ")"',
+#         'args -> arg "," args',
+#         'arg -> id ":" type',
+#         'id -> r"([a-zA-Z]|_)([a-zA-Z0-9]|_)*"',
+#         'type -> "usize"',
+#         'type -> "i32"',
+#     )
+#     def _0(_, *args: str) -> str:
+#         print(args)
+#         return "".join(args)
+
+#     assert ld.eval("eval(a, eval(b, c), c)") == "eval(a,c)"

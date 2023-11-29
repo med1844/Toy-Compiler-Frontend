@@ -1,14 +1,30 @@
-# Compiler front-end framework
+# Toy compiler front-end
 
 [![pre-commit](https://github.com/medioqrity/Compiler-Frontend/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/medioqrity/Compiler-Frontend/actions/workflows/pre-commit.yml)
 
-This repository contains:
+This repository contains a framework that allows you build parsers for languages within several lines. Specifically, it contains:
 
 - A regex engine that supports a subset of regex, based on Min-DFA.
 - A LR(1) transition table generator.
 - A portable scanner + parser, and built-in CFG production action support (i.e. functions to be called when some production is reduced)
 
+This repository, doesn't contain:
+
+- LR error detection and recovery (you will get cryptic error message when feeding ill-formed input, or when CFG is problematic)
+- No lossless parse tree (space, tabs, comments, token span not recorded)
+- No EBNF support
+- No interface to control type's priority in regex set
+  - Problems may occur when the language sets described by two regexes overlap
+
+So, it's capable of building AST or evaluate expression tree. You may use AST to do checks like linting or formatting. However, it cannot be used to build syntax highlighters, or be used to build language servers.
+
 ## How to use
+
+### Dependencies
+
+There's no dependency if you just want to use the repository. However, if you want to contribute to the framework, you need to install `pytest` and `pre-commit` using command `poetry install --only dev`.
+
+### Example usage
 
 To start with, you need to build a language definition object using `LangDefBuilder` class method:
 
@@ -66,16 +82,18 @@ while True:
         break
 ```
 
-Save these code snippets into a file, e.g. `test_calc.py`. Then, you should get a working calculator:
+Save these code snippets into a file, you should get a working calculator:
 
 ```
-$ python test_calc.py
+$ python examples/calc.py
 >>> 5 + 6 * 7 - (8 - 9 * 10)
 129
 >>> (5 + 6) * 7 - 8 - 9 * 10
 -21
 >>>
 ```
+
+You may find the above code in `examples/calc.py` and try to run it yourself. There's also other simple examples that might interest you.
 
 ## Portability
 
@@ -159,7 +177,7 @@ id -> r".|([a-zA-Z]|_)([a-zA-Z]|[0-9]|_|\?)*"
 
 ### Start web app
 
-```python
+```bash
 flask --app server.py run
 ```
 
@@ -220,6 +238,7 @@ Notice that in plain terminals (`"+", "-", "(", ")"`), you don't need to use `\`
 - [x] (Cancelled) ~~Define interfaces for CFG parser & implement other parsers (LL1, etc)~~
 - [ ] Improve `ContextFreeGrammar.from_string` parser, make it support `r"[^ ]*"`
 - [ ] Further optimize the performance of `LangDef`
+- [ ] Add parser generator
 - Web app optimizations:
   - [x] (Cancelled) ~~Add custom `TypeDefinition` to web app~~
     You don't have to provide a separate type definition file now
