@@ -9,9 +9,7 @@ class LRItemSet:
         self.items: Set[LRItem] = set()
         self.__recalc_hash_flag = True  # lazy tag
         self.__hash_val = None
-        self.__map = (
-            {}
-        )  # Map "step" to a list of item reference, in order to accelerate.
+        self.__map = {}  # Map "step" to a list of item reference, in order to accelerate.
 
     def __hash__(self):
         if self.__recalc_hash_flag:

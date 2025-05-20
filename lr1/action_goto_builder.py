@@ -11,8 +11,9 @@ class ActionGotoBuilder:
     def new(
         cfg: ContextFreeGrammar, lr_item_set_automata: LRItemSetAutomata
     ) -> Tuple[Action, Goto]:
-        action, goto = Action(cfg, len(lr_item_set_automata.item_set_to_id)), Goto(
-            cfg, len(lr_item_set_automata.item_set_to_id)
+        action, goto = (
+            Action(cfg, len(lr_item_set_automata.item_set_to_id)),
+            Goto(cfg, len(lr_item_set_automata.item_set_to_id)),
         )
         for src, v in lr_item_set_automata.edges.items():
             for step, dst in v:

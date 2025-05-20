@@ -3,7 +3,6 @@ from typing import Set, Optional, Self
 
 
 class LRItem:
-
     """
     Is in fact a tri-tuple (production id, look forward, dot position)
     lookForward is a set, containing a set of id of terminals.

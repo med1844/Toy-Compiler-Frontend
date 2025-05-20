@@ -509,9 +509,7 @@ class NFANodeRegexOperation(RegexOperation):
 
 def parse(r: Deque[str], regex_operation: RegexOperation):
     # op priority: {*, +} > concat > or
-    ops = (
-        deque()
-    )  # operands, but doesn't consider "|" operators. We must first concatenate everything before "|" them
+    ops = deque()  # operands, but doesn't consider "|" operators. We must first concatenate everything before "|" them
     or_ops = deque()
 
     def reduce_concat():

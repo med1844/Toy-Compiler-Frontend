@@ -3,7 +3,6 @@ from .type_def import TypeDefinition
 
 
 class ContextFreeGrammar:
-
     """
     production:
         nonTerminal -> sequence | sequence | ...
@@ -218,9 +217,12 @@ class ContextFreeGrammar:
                     is_recursive = True
                     break
             if is_recursive:
-                (new_non_terminal, new_production), (
-                    new_sub_non_terminal,
-                    new_sub_production,
+                (
+                    (new_non_terminal, new_production),
+                    (
+                        new_sub_non_terminal,
+                        new_sub_production,
+                    ),
                 ) = self.__get_left_recursion_free_production(non_terminal, ids)
                 result_non_terminals.add(new_sub_non_terminal)
                 for prod in new_production:
