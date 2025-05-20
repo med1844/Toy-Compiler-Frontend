@@ -10,11 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Install poetry
-      run: pipx install poetry
-    - uses: actions/setup-python@v4
+    - uses: astral-sh/setup-uv@v5
+    - uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
-        cache: 'poetry'
-    - run: poetry install --only dev
+        python-version-file: "pyproject.toml"
     - uses: pre-commit/action@v3.0.0
